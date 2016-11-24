@@ -66,3 +66,15 @@ test('get multiple', function (t) {
     })
   })
 })
+
+test('promises', function (t) {
+  var store = new IdbKeyStore()
+
+  store.set('a', 1)
+  .then(() => store.get('a'))
+  .then(result => {
+    t.equal(result, 1)
+    t.end()
+  })
+  .catch(err => t.fail(err))
+})

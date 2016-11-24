@@ -35,14 +35,32 @@ function IdbKeyStore (opts) {
   }
 }
 
+function promisify (cb) {
+  var defer = {cb: cb}
+
+  if (typeof Promise === 'function' && cb == null) {
+    defer.promise = new Promise(function (resolve, reject) {
+      defer.cb = function (err, result) {
+        if (err) return reject(err)
+        else return resolve(result)
+      }
+    })
+  }
+
+  if (!defer.cb) defer.cb = function noop () {}
+
+  return defer
+}
+
 IdbKeyStore.prototype.get = function (key, cb) {
   var self = this
-  if (!cb) cb = noop
+  var defer = promisify(cb)
+
   if (!self._db) {
     self._queue.push({
       type: 'get',
       key: key,
-      cb: cb
+      cb: defer.cb
     })
   } else if (Array.isArray(key)) {
     var result = []
@@ -53,11 +71,11 @@ IdbKeyStore.prototype.get = function (key, cb) {
         if (erroredOut) return
         if (err) {
           erroredOut = true
-          cb(err)
+          defer.cb(err)
         }
         result[index] = val
         successes++
-        if (successes === key.length) cb(null, result)
+        if (successes === key.length) defer.cb(null, result)
       })
     })
   } else {
@@ -66,20 +84,23 @@ IdbKeyStore.prototype.get = function (key, cb) {
     .get(key)
 
     request.onsuccess = function (event) {
-      cb(null, event.target.result)
+      defer.cb(null, event.target.result)
     }
   }
+
+  return defer.promise
 }
 
 IdbKeyStore.prototype.set = function (key, value, cb) {
   var self = this
-  if (!cb) cb = noop
+  var defer = promisify(cb)
+
   if (!self._db) {
     self._queue.push({
       type: 'set',
       key: key,
       value: value,
-      cb: cb
+      cb: defer.cb
     })
   } else {
     var request = self._db.transaction(['kv'], 'readwrite')
@@ -87,9 +108,11 @@ IdbKeyStore.prototype.set = function (key, value, cb) {
     .put(value, key)
 
     request.onsuccess = function () {
-      cb(null)
+      defer.cb(null)
     }
   }
+
+  return defer.promise
 }
 
 IdbKeyStore.prototype._drainQueue = function () {
@@ -105,6 +128,3 @@ IdbKeyStore.prototype._drainQueue = function () {
   self._queue = null
 }
 
-function noop () {
-  /* do nothing */
-}
