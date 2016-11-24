@@ -1,0 +1,31 @@
+{
+  "name": "idb-key-store",
+  "version": "1.0.0",
+  "description": "Persistent key-value store for web browsers backed by IndexDB",
+  "main": "index.js",
+  "scripts": {
+    "bundle": "browserify -r . -s IdbKeyStore | uglifyjs -m > idbkeystore.min.js",
+    "test": "standard && browserify --debug test.js > test.bundle.js && echo 'Open test.html in your browser'"
+  },
+  "keywords": [
+    "indexdb",
+    "idb",
+    "key",
+    "value",
+    "store"
+  ],
+  "author": "xuset",
+  "license": "MIT",
+  "devDependencies": {
+    "browserify": "^13.1.1",
+    "standard": "^8.6.0",
+    "tape": "^4.6.3",
+    "uglify-js": "^2.7.4"
+  },
+  "dependencies": {},
+  "standard": {
+    "ignore": [
+      "test.bundle.js"
+    ]
+  }
+}
