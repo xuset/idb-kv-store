@@ -44,6 +44,22 @@ IdbKeyStore.prototype.get = function (key, cb) {
       key: key,
       cb: cb
     })
+  } else if (Array.isArray(key)) {
+    var result = []
+    var erroredOut = false
+    var successes = 0
+    key.forEach(function (_, index) {
+      self.get(key[index], function (err, val) {
+        if (erroredOut) return
+        if (err) {
+          erroredOut = true
+          cb(err)
+        }
+        result[index] = val
+        successes++
+        if (successes === key.length) cb(null, result)
+      })
+    })
   } else {
     var request = self._db.transaction(['kv'], 'readonly')
     .objectStore('kv')

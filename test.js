@@ -52,3 +52,17 @@ test('get empty', function (t) {
   })
 })
 
+test('get multiple', function (t) {
+  var store = new IdbKeyStore()
+  store.set('a', 1, function (err) {
+    t.equal(err, null)
+    store.set('b', 2, function (err) {
+      t.equal(err, null)
+      store.get(['a', 'b'], function (err, result) {
+        t.equal(err, null)
+        t.deepEqual(result, [1, 2])
+        t.end()
+      })
+    })
+  })
+})
