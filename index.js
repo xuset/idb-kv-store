@@ -80,7 +80,7 @@ IdbKeyStore.prototype.get = function (key, cb) {
       })
     })
   } else {
-    var request = self._db.transaction(['kv'], 'readonly')
+    var request = self._db.transaction('kv', 'readonly')
     .objectStore('kv')
     .get(key)
 
@@ -104,7 +104,7 @@ IdbKeyStore.prototype.set = function (key, value, cb) {
       cb: defer.cb
     })
   } else {
-    var request = self._db.transaction(['kv'], 'readwrite')
+    var request = self._db.transaction('kv', 'readwrite')
     .objectStore('kv')
     .put(value, key)
 
@@ -116,6 +116,34 @@ IdbKeyStore.prototype.set = function (key, value, cb) {
   return defer.promise
 }
 
+IdbKeyStore.prototype.json = function (cb) {
+  var self = this
+  var defer = promisify(cb)
+
+  if (!self._db) {
+    self._queue.push({
+      type: 'json',
+      cb: defer.cb
+    })
+  } else {
+    var request = self._db.transaction('kv', 'readonly')
+    .objectStore('kv')
+    .openCursor()
+
+    var json = {}
+    request.onsuccess = function (event) {
+      var cursor = event.target.result
+      if (cursor) {
+        json[cursor.key] = cursor.value
+        cursor.continue()
+      } else {
+        defer.cb(null, json)
+      }
+    }
+  }
+
+  return defer.promise
+}
 IdbKeyStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
@@ -124,6 +152,8 @@ IdbKeyStore.prototype._drainQueue = function () {
       self.get(item.key, item.cb)
     } else if (item.type === 'set') {
       self.set(item.key, item.value, item.cb)
+    } else if (item.type === 'json') {
+      self.json(item.cb)
     }
   }
   self._queue = null

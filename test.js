@@ -2,7 +2,7 @@ var IdbKeyStore = require('.')
 var test = require('tape')
 
 test('create/get/set pre-ready', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
   var store = createStore()
   store.set('abc', 'def', function (err) {
     t.equal(err, null)
@@ -15,7 +15,7 @@ test('create/get/set pre-ready', function (t) {
 })
 
 test('create/get/set post-ready', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
   var store = createStore({ onready: onready })
 
   function onready () {
@@ -31,7 +31,7 @@ test('create/get/set post-ready', function (t) {
 })
 
 test('set/get object', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
   var store = createStore()
 
   var val = {somekey: 'someval'}
@@ -47,7 +47,7 @@ test('set/get object', function (t) {
 })
 
 test('get empty', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
   var store = createStore()
   store.get('badkey', function (err, result) {
     t.equal(err, null)
@@ -57,7 +57,7 @@ test('get empty', function (t) {
 })
 
 test('get multiple', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
   var store = createStore()
   store.set('a', 1, function (err) {
     t.equal(err, null)
@@ -73,7 +73,7 @@ test('get multiple', function (t) {
 })
 
 test('promises', function (t) {
-  t.timeoutAfter(1000)
+  t.timeoutAfter(3000)
 
   if (typeof Promise !== 'function') {
     t.skip('Promises not supported')
@@ -87,9 +87,30 @@ test('promises', function (t) {
   .then(function () { return store.get('a') })
   .then(function (result) {
     t.equal(result, 1)
+    return store.json()
+  })
+  .then(function (json) {
+    t.deepEqual(json, {a: 1})
     t.end()
   })
   .catch(function (err) { t.fail(err) })
+})
+
+test('json()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.json(function (err, json) {
+    t.equal(err, null)
+    t.deepEqual(json, {})
+    store.set('abc', 'def', function (err) {
+      t.equal(err, null)
+      store.json(function (err, json) {
+        t.equal(err, null)
+        t.deepEqual(json, {abc: 'def'})
+        t.end()
+      })
+    })
+  })
 })
 
 function createStore (opts) {

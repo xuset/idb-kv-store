@@ -52,6 +52,10 @@ Stores the `value` at `key`; the value can be retreived through `store.get(key)`
 
 Retreives the value at `key`. When the value is retreived, `cb` is called with `cb(err, value)`. If the retreival was successful then `err` will be null. If `cb` is undefined then a promise is returned instead.
 
+### `store.json([cb])`
+
+Retreives the entire key-value store. When the json representation has been retreived, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
+
 ## License
 
 MIT. Copyright (c) Austin Middleton.
