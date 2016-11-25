@@ -1,5 +1,4 @@
 *.swp
 node_modules
 *.min.js
-*.bundle.js
 npm-debug.log
