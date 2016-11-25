@@ -1,4 +1,4 @@
-# idb-kv-store [![Build Status](https://travis-ci.org/xuset/idb-kv-store.svg?branch=master)](https://travis-ci.org/xuset/idb-kv-store)
+# idb-kv-store [![Build Status](https://travis-ci.org/xuset/idb-kv-store.svg?branch=master)](https://travis-ci.org/xuset/idb-kv-store) [![npm](https://img.shields.io/npm/v/idb-kv-store.svg)](https://npmjs.org/package/idb-kv-store)
 
 Persistent key-value store for web browsers backed by IndexDB
 
