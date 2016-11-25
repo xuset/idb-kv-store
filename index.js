@@ -2,15 +2,16 @@ module.exports = IdbKeyStore
 
 var IDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB
 
-function IdbKeyStore (opts) {
+function IdbKeyStore (name, opts) {
   var self = this
-  if (!(this instanceof IdbKeyStore)) return new IdbKeyStore(opts)
+  if (!name) throw new Error('A name must be supplied')
+  if (!(this instanceof IdbKeyStore)) return new IdbKeyStore(name, opts)
   if (!opts) opts = {}
 
   self._db = null
   self._queue = []
 
-  var request = IDB.open(opts.name || 'idb-key-store')
+  var request = IDB.open(name)
 
   request.onerror = function (event) {
     var err = new Error('IDB error')

@@ -11,8 +11,8 @@ This module can be used with [browserify](http://browserify.org/) or the `idbkvs
 ## Usage
 
 ```js
-var IdbKvStore = require('idb-kv-store')
-var store = new IdbKvStore()
+var Store = require('idb-kv-store')
+var store = new Store('your stores name')
 
 // Store the value 'def' at key 'abc'
 store.set('abc', 'def', function (err) {
@@ -25,8 +25,8 @@ store.set('abc', 'def', function (err) {
 Promises are also supported!
 
 ```js
-var IdbKvStore = require('idb-kv-store')
-var store = new IdbKvStore()
+var Store = require('idb-kv-store')
+var store = new Store('your stores name')
 
 // Store the value 'def' at key 'abc'
 store.set('abc', 'def')
@@ -36,12 +36,11 @@ store.set('abc', 'def')
 
 ## API
 
-### `store = new IdbKvStore([opts])`
+### `store = new Store(name, [opts])`
 
-Instantiates a new key-value store.
+Instantiates a new key-value store. `name` is the name of the database used to persist the data. So multiple Store instances with the same name will be sharing the same data.
 
 `opts` can take the following options:
- * `opts.name` - The name of the IndexDB database to open
  * `opts.onready` - A zero argument function to call when the IndexDB database is open
  * `opts.onerror` - This function is called when IndexDB experiences an error. It accepts one error argument. If this is undefined, the error is thrown instead.
 

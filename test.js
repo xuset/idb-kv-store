@@ -93,7 +93,6 @@ test('promises', function (t) {
 })
 
 function createStore (opts) {
-  if (!opts) opts = {}
-  opts.name = opts.name || '' + (Math.round(99999999 * Math.random()))
-  return new IdbKeyStore(opts)
+  var name = '' + (Math.round(9e16 * Math.random()))
+  return new IdbKeyStore(name, opts)
 }
