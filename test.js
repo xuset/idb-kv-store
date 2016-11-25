@@ -2,7 +2,8 @@ var IdbKeyStore = require('.')
 var test = require('tape')
 
 test('create/get/set pre-ready', function (t) {
-  var store = new IdbKeyStore()
+  t.timeoutAfter(1000)
+  var store = createStore()
   store.set('abc', 'def', function (err) {
     t.equal(err, null)
     store.get('abc', function (err, result) {
@@ -14,7 +15,8 @@ test('create/get/set pre-ready', function (t) {
 })
 
 test('create/get/set post-ready', function (t) {
-  var store = new IdbKeyStore({ onready: onready })
+  t.timeoutAfter(1000)
+  var store = createStore({ onready: onready })
 
   function onready () {
     store.set('abc', 'def', function (err) {
@@ -29,7 +31,8 @@ test('create/get/set post-ready', function (t) {
 })
 
 test('set/get object', function (t) {
-  var store = new IdbKeyStore()
+  t.timeoutAfter(1000)
+  var store = createStore()
 
   var val = {somekey: 'someval'}
 
@@ -44,7 +47,8 @@ test('set/get object', function (t) {
 })
 
 test('get empty', function (t) {
-  var store = new IdbKeyStore()
+  t.timeoutAfter(1000)
+  var store = createStore()
   store.get('badkey', function (err, result) {
     t.equal(err, null)
     t.equal(result, undefined)
@@ -53,7 +57,8 @@ test('get empty', function (t) {
 })
 
 test('get multiple', function (t) {
-  var store = new IdbKeyStore()
+  t.timeoutAfter(1000)
+  var store = createStore()
   store.set('a', 1, function (err) {
     t.equal(err, null)
     store.set('b', 2, function (err) {
@@ -68,13 +73,27 @@ test('get multiple', function (t) {
 })
 
 test('promises', function (t) {
-  var store = new IdbKeyStore()
+  t.timeoutAfter(1000)
+
+  if (typeof Promise !== 'function') {
+    t.skip('Promises not supported')
+    t.end()
+    return
+  }
+
+  var store = createStore()
 
   store.set('a', 1)
-  .then(() => store.get('a'))
-  .then(result => {
+  .then(function () { return store.get('a') })
+  .then(function (result) {
     t.equal(result, 1)
     t.end()
   })
-  .catch(err => t.fail(err))
+  .catch(function (err) { t.fail(err) })
 })
+
+function createStore (opts) {
+  if (!opts) opts = {}
+  opts.name = opts.name || '' + (Math.round(99999999 * Math.random()))
+  return new IdbKeyStore(opts)
+}
