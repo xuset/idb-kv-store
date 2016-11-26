@@ -91,6 +91,9 @@ test('promises', function (t) {
   })
   .then(function (json) {
     t.deepEqual(json, {a: 1})
+    return store.keys()
+  }).then(function (keys) {
+    t.deepEqual(keys, ['a'])
     t.end()
   })
   .catch(function (err) { t.fail(err) })
@@ -107,6 +110,23 @@ test('json()', function (t) {
       store.json(function (err, json) {
         t.equal(err, null)
         t.deepEqual(json, {abc: 'def'})
+        t.end()
+      })
+    })
+  })
+})
+
+test('keys()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.keys(function (err, keys) {
+    t.equal(err, null)
+    t.deepEqual(keys, [])
+    store.set('abc', 'def', function (err) {
+      t.equal(err, null)
+      store.keys(function (err, keys) {
+        t.equal(err, null)
+        t.deepEqual(keys, ['abc'])
         t.end()
       })
     })

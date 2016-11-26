@@ -144,6 +144,36 @@ IdbKeyStore.prototype.json = function (cb) {
 
   return defer.promise
 }
+
+IdbKeyStore.prototype.keys = function (cb) {
+  var self = this
+  var defer = promisify(cb)
+
+  if (!self._db) {
+    self._queue.push({
+      type: 'keys',
+      cb: defer.cb
+    })
+  } else {
+    var request = self._db.transaction('kv', 'readonly')
+    .objectStore('kv')
+    .openCursor()
+
+    var keys = []
+    request.onsuccess = function (event) {
+      var cursor = event.target.result
+      if (cursor) {
+        keys.push(cursor.key)
+        cursor.continue()
+      } else {
+        defer.cb(null, keys)
+      }
+    }
+  }
+
+  return defer.promise
+}
+
 IdbKeyStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
@@ -154,6 +184,8 @@ IdbKeyStore.prototype._drainQueue = function () {
       self.set(item.key, item.value, item.cb)
     } else if (item.type === 'json') {
       self.json(item.cb)
+    } else if (item.type === 'keys') {
+      self.keys(item.cb)
     }
   }
   self._queue = null

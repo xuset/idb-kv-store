@@ -46,15 +46,19 @@ Instantiates a new key-value store. `name` is the name of the database used to p
 
 ### `store.set(key, value, [cb])`
 
-Stores the `value` at `key`; the value can be retreived through `store.get(key)`. When the store operation completes, `cb` is called with `cb(err)`. `err` is null if the store was successful. If `cb` is undefined then a promise is returned instead.
+Stores the `value` at `key`; the value can be retrieved through `store.get(key)`. When the store operation completes, `cb` is called with `cb(err)`. `err` is null if the store was successful. If `cb` is undefined then a promise is returned instead. If the key already exists then the old value is replaced with the new one.
 
 ### `store.get(key, [cb])`
 
-Retreives the value at `key`. When the value is retreived, `cb` is called with `cb(err, value)`. If the retreival was successful then `err` will be null. If `cb` is undefined then a promise is returned instead.
+retrieves the value at `key`. When the value is retrieved, `cb` is called with `cb(err, value)`. If the retrieval was successful then `err` will be null. If `cb` is undefined then a promise is returned instead. If the key does not exist then undefined is returned as the `value`; no error is raised.
+
+### `store.keys([cb])`
+
+Retrieves the list of keys stored. When the list is retrieved, `cb` is called with `cb(err, keys)`. If `cb` is undefined then a promise is returned.
 
 ### `store.json([cb])`
 
-Retreives the entire key-value store. When the json representation has been retreived, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
+retrieves the entire key-value store as a json object. When the json representation has been retrieved, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
 
 ## License
 
