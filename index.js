@@ -4,7 +4,7 @@ var IDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || w
 
 function IdbKeyStore (name, opts) {
   var self = this
-  if (!name) throw new Error('A name must be supplied')
+  if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
   if (!(this instanceof IdbKeyStore)) return new IdbKeyStore(name, opts)
   if (!opts) opts = {}
 
@@ -14,14 +14,7 @@ function IdbKeyStore (name, opts) {
   var request = IDB.open(name)
 
   request.onerror = function (event) {
-    var err = new Error('IDB error')
-    err.event = event
-
-    if (opts.onerror) {
-      opts.onerror(err)
-    } else {
-      throw err
-    }
+    onerror(event, opts.onerror)
   }
 
   request.onsuccess = function (event) {
@@ -34,23 +27,6 @@ function IdbKeyStore (name, opts) {
     var db = event.target.result
     db.createObjectStore('kv')
   }
-}
-
-function promisify (cb) {
-  var defer = {cb: cb}
-
-  if (typeof Promise === 'function' && cb == null) {
-    defer.promise = new Promise(function (resolve, reject) {
-      defer.cb = function (err, result) {
-        if (err) return reject(err)
-        else return resolve(result)
-      }
-    })
-  }
-
-  if (!defer.cb) defer.cb = function noop () {}
-
-  return defer
 }
 
 IdbKeyStore.prototype.get = function (key, cb) {
@@ -80,12 +56,15 @@ IdbKeyStore.prototype.get = function (key, cb) {
       })
     })
   } else {
-    var request = self._db.transaction('kv', 'readonly')
-    .objectStore('kv')
-    .get(key)
+    var transaction = self._db.transaction('kv', 'readonly')
+    var request = transaction.objectStore('kv').get(key)
 
     request.onsuccess = function (event) {
       defer.cb(null, event.target.result)
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
     }
   }
 
@@ -104,12 +83,15 @@ IdbKeyStore.prototype.set = function (key, value, cb) {
       cb: defer.cb
     })
   } else {
-    var request = self._db.transaction('kv', 'readwrite')
-    .objectStore('kv')
-    .put(value, key)
+    var transaction = self._db.transaction('kv', 'readwrite')
+    var request = transaction.objectStore('kv').put(value, key)
 
     request.onsuccess = function () {
       defer.cb(null)
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
     }
   }
 
@@ -126,9 +108,8 @@ IdbKeyStore.prototype.json = function (cb) {
       cb: defer.cb
     })
   } else {
-    var request = self._db.transaction('kv', 'readonly')
-    .objectStore('kv')
-    .openCursor()
+    var transaction = self._db.transaction('kv', 'readonly')
+    var request = transaction.objectStore('kv').openCursor()
 
     var json = {}
     request.onsuccess = function (event) {
@@ -139,6 +120,10 @@ IdbKeyStore.prototype.json = function (cb) {
       } else {
         defer.cb(null, json)
       }
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
     }
   }
 
@@ -155,9 +140,8 @@ IdbKeyStore.prototype.keys = function (cb) {
       cb: defer.cb
     })
   } else {
-    var request = self._db.transaction('kv', 'readonly')
-    .objectStore('kv')
-    .openCursor()
+    var transaction = self._db.transaction('kv', 'readonly')
+    var request = transaction.objectStore('kv').openCursor()
 
     var keys = []
     request.onsuccess = function (event) {
@@ -168,6 +152,10 @@ IdbKeyStore.prototype.keys = function (cb) {
       } else {
         defer.cb(null, keys)
       }
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
     }
   }
 
@@ -191,3 +179,30 @@ IdbKeyStore.prototype._drainQueue = function () {
   self._queue = null
 }
 
+function promisify (cb) {
+  var defer = {cb: cb}
+
+  if (typeof Promise === 'function' && cb == null) {
+    defer.promise = new Promise(function (resolve, reject) {
+      defer.cb = function (err, result) {
+        if (err) return reject(err)
+        else return resolve(result)
+      }
+    })
+  }
+
+  if (!defer.cb) defer.cb = function noop () {}
+
+  return defer
+}
+
+function onerror (event, cb) {
+  var err = new Error('IDB error')
+  err.event = event
+
+  if (cb) {
+    cb(err)
+  } else {
+    throw err
+  }
+}

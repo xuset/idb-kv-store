@@ -133,6 +133,12 @@ test('keys()', function (t) {
   })
 })
 
+test('error cases', function (t) {
+  t.throws(function () { return new IdbKeyStore() })
+  t.throws(function () { return new IdbKeyStore({}) })
+  t.end()
+})
+
 function createStore (opts) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKeyStore(name, opts)
