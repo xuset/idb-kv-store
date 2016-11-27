@@ -99,6 +99,10 @@ test('promises', function (t) {
     return store.clear()
   })
   .then(function () {
+    return store.count()
+  })
+  .then(function (count) {
+    t.equal(count, 0)
     return store.keys()
   })
   .then(function (keys) {
@@ -185,6 +189,23 @@ test('clear()', function (t) {
           t.equal(value, undefined)
           t.end()
         })
+      })
+    })
+  })
+})
+
+test('count()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.count(function (err, count) {
+    t.equal(err, null)
+    t.equal(count, 0)
+    store.set('abc', 'def', function (err) {
+      t.equal(err, null)
+      store.count(function (err, count) {
+        t.equal(err, null)
+        t.equal(count, 1)
+        t.end()
       })
     })
   })
