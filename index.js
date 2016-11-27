@@ -188,6 +188,31 @@ IdbKeyStore.prototype.remove = function (key, cb) {
   return defer.promise
 }
 
+IdbKeyStore.prototype.clear = function (cb) {
+  var self = this
+  var defer = promisify(cb)
+
+  if (!self._db) {
+    self._queue.push({
+      type: 'clear',
+      cb: defer.cb
+    })
+  } else {
+    var transaction = self._db.transaction('kv', 'readwrite')
+    var request = transaction.objectStore('kv').clear()
+
+    request.onsuccess = function (event) {
+      defer.cb(null)
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
+    }
+  }
+
+  return defer.promise
+}
+
 IdbKeyStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
@@ -202,6 +227,8 @@ IdbKeyStore.prototype._drainQueue = function () {
       self.keys(item.cb)
     } else if (item.type === 'remove') {
       self.remove(item.key, item.cb)
+    } else if (item.type === 'clear') {
+      self.clear(item.cb)
     }
   }
   self._queue = null

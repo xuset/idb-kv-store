@@ -96,6 +96,9 @@ test('promises', function (t) {
     return store.remove('a')
   })
   .then(function () {
+    return store.clear()
+  })
+  .then(function () {
     return store.keys()
   })
   .then(function (keys) {
@@ -157,6 +160,25 @@ test('remove()', function (t) {
     store.set('abc', 'def', function (err) {
       t.equal(err, null)
       store.remove('abc', function (err) {
+        t.equal(err, null)
+        store.get('abc', function (err, value) {
+          t.equal(err, null)
+          t.equal(value, undefined)
+          t.end()
+        })
+      })
+    })
+  })
+})
+
+test('clear()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.clear(function (err) {
+    t.equal(err, null)
+    store.set('abc', 'def', function (err) {
+      t.equal(err, null)
+      store.clear(function (err) {
         t.equal(err, null)
         store.get('abc', function (err, value) {
           t.equal(err, null)
