@@ -99,14 +99,17 @@ test('promises', function (t) {
     return store.clear()
   })
   .then(function () {
+    return store.add('b', 2)
+  })
+  .then(function () {
     return store.count()
   })
   .then(function (count) {
-    t.equal(count, 0)
+    t.equal(count, 1)
     return store.keys()
   })
   .then(function (keys) {
-    t.deepEqual(keys, [])
+    t.deepEqual(keys, ['b'])
     t.end()
   })
   .catch(function (err) {
@@ -207,6 +210,18 @@ test('count()', function (t) {
         t.equal(count, 1)
         t.end()
       })
+    })
+  })
+})
+
+test('add()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.add('abc', 'def', function (err) {
+    t.equal(err, null)
+    store.add('abc', 'def', function (err) {
+      t.notEqual(err, null)
+      t.end()
     })
   })
 })

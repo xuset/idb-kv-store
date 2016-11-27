@@ -238,6 +238,33 @@ IdbKeyStore.prototype.count = function (cb) {
   return defer.promise
 }
 
+IdbKeyStore.prototype.add = function (key, value, cb) {
+  var self = this
+  var defer = promisify(cb)
+
+  if (!self._db) {
+    self._queue.push({
+      type: 'add',
+      key: key,
+      value: value,
+      cb: defer.cb
+    })
+  } else {
+    var transaction = self._db.transaction('kv', 'readwrite')
+    var request = transaction.objectStore('kv').add(value, key)
+
+    request.onsuccess = function (event) {
+      defer.cb(null)
+    }
+
+    transaction.onerror = function (event) {
+      onerror(event, defer.cb)
+    }
+  }
+
+  return defer.promise
+}
+
 IdbKeyStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
@@ -256,6 +283,8 @@ IdbKeyStore.prototype._drainQueue = function () {
       self.clear(item.cb)
     } else if (item.type === 'count') {
       self.count(item.cb)
+    } else if (item.type === 'add') {
+      self.add(item.key, item.value, item.cb)
     }
   }
   self._queue = null
