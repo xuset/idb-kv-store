@@ -1,6 +1,6 @@
 {
   "name": "idb-kv-store",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Persistent key-value store for web browsers backed by IndexDB",
   "main": "index.js",
   "repository": "github:xuset/idb-kv-store",
