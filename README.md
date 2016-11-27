@@ -48,9 +48,21 @@ Instantiates a new key-value store. `name` is the name of the database used to p
 
 Stores the `value` at `key`; the value can be retrieved through `store.get(key)`. When the store operation completes, `cb` is called with `cb(err)`. `err` is null if the store was successful. If `cb` is undefined then a promise is returned instead. If the key already exists then the old value is replaced with the new one.
 
+### `store.add(key, value, [cb])`
+
+The same as `store.set(...)` except if the key already exists, an error is returned in the callback.
+
 ### `store.get(key, [cb])`
 
-retrieves the value at `key`. When the value is retrieved, `cb` is called with `cb(err, value)`. If the retrieval was successful then `err` will be null. If `cb` is undefined then a promise is returned instead. If the key does not exist then undefined is returned as the `value`; no error is raised.
+Retrieves the value at `key`. When the value is retrieved, `cb` is called with `cb(err, value)`. If the retrieval was successful then `err` will be null. If `cb` is undefined then a promise is returned instead. If the key does not exist then undefined is returned as the `value`; no error is raised.
+
+### `store.remove(key, [cb])`
+
+Removes the given key from the store and calls `cb(err)` upon completion. `err` is null if the removal was successful. If the key did not exist before the removal, the removal is still considered successful. If `cb` is undefined then a promise is returned.
+
+### `store.clear([cb])`
+
+Removes all entries from the store, and calls `cb(err)` upon completion. `err` is null the clear was successful. If `cb` is undefined then a promise is returned.
 
 ### `store.keys([cb])`
 
@@ -58,7 +70,11 @@ Retrieves the list of keys stored. When the list is retrieved, `cb` is called wi
 
 ### `store.json([cb])`
 
-retrieves the entire key-value store as a json object. When the json representation has been retrieved, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
+Retrieves the entire key-value store as a json object. When the json representation has been retrieved, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
+
+### `store.count([cb])`
+
+Retrieves the number of entries in the store, and calls `cb(err, count)` upon retrieval. `err` is null if the count was successful, in which case `count` will hold the value. If `cb` is undefined, then a promise is returned.
 
 ## License
 
