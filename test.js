@@ -6,9 +6,9 @@ test('create/get/set pre-ready', function (t) {
   var store = createStore()
   store.set('abc', 'def', function (err) {
     t.equal(err, null)
-    store.get('abc', function (err, result) {
+    store.get('abc', function (err, value) {
       t.equal(err, null)
-      t.equal(result, 'def')
+      t.equal(value, 'def')
       t.end()
     })
   })
@@ -21,9 +21,9 @@ test('create/get/set post-ready', function (t) {
   function onready () {
     store.set('abc', 'def', function (err) {
       t.equal(err, null)
-      store.get('abc', function (err, result) {
+      store.get('abc', function (err, value) {
         t.equal(err, null)
-        t.equal(result, 'def')
+        t.equal(value, 'def')
         t.end()
       })
     })
@@ -38,9 +38,9 @@ test('set/get object', function (t) {
 
   store.set('abc', val, function (err) {
     t.equal(err, null)
-    store.get('abc', function (err, result) {
+    store.get('abc', function (err, value) {
       t.equal(err, null)
-      t.deepEqual(result, val)
+      t.deepEqual(value, val)
       t.end()
     })
   })
@@ -49,9 +49,9 @@ test('set/get object', function (t) {
 test('get empty', function (t) {
   t.timeoutAfter(3000)
   var store = createStore()
-  store.get('badkey', function (err, result) {
+  store.get('badkey', function (err, value) {
     t.equal(err, null)
-    t.equal(result, undefined)
+    t.equal(value, undefined)
     t.end()
   })
 })
@@ -63,9 +63,9 @@ test('get multiple', function (t) {
     t.equal(err, null)
     store.set('b', 2, function (err) {
       t.equal(err, null)
-      store.get(['a', 'b'], function (err, result) {
+      store.get(['a', 'b'], function (err, values) {
         t.equal(err, null)
-        t.deepEqual(result, [1, 2])
+        t.deepEqual(values, [1, 2])
         t.end()
       })
     })
@@ -84,19 +84,28 @@ test('promises', function (t) {
   var store = createStore()
 
   store.set('a', 1)
-  .then(function () { return store.get('a') })
-  .then(function (result) {
-    t.equal(result, 1)
+  .then(function () {
+    return store.get('a')
+  })
+  .then(function (value) {
+    t.equal(value, 1)
     return store.json()
   })
   .then(function (json) {
     t.deepEqual(json, {a: 1})
+    return store.remove('a')
+  })
+  .then(function () {
     return store.keys()
-  }).then(function (keys) {
-    t.deepEqual(keys, ['a'])
+  })
+  .then(function (keys) {
+    t.deepEqual(keys, [])
     t.end()
   })
-  .catch(function (err) { t.fail(err) })
+  .catch(function (err) {
+    t.fail(err)
+    t.end()
+  })
 })
 
 test('json()', function (t) {
@@ -134,9 +143,29 @@ test('keys()', function (t) {
 })
 
 test('error cases', function (t) {
+  t.timeoutAfter(3000)
   t.throws(function () { return new IdbKeyStore() })
   t.throws(function () { return new IdbKeyStore({}) })
   t.end()
+})
+
+test('remove()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.remove('abc', function (err) {
+    t.equal(err, null)
+    store.set('abc', 'def', function (err) {
+      t.equal(err, null)
+      store.remove('abc', function (err) {
+        t.equal(err, null)
+        store.get('abc', function (err, value) {
+          t.equal(err, null)
+          t.equal(value, undefined)
+          t.end()
+        })
+      })
+    })
+  })
 })
 
 function createStore (opts) {
