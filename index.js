@@ -1,6 +1,7 @@
 module.exports = IdbKeyStore
 
-var IDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB
+var scope = typeof window === 'undefined' ? self : window // eslint-disable-line
+var IDB = scope.indexedDB || scope.mozIndexedDB || scope.webkitIndexedDB || scope.msIndexedDB
 
 function IdbKeyStore (name, opts) {
   var self = this
