@@ -2,7 +2,7 @@
 
 Persistent key-value store for web browsers backed by IndexDB
 
-[![Sauce Test Status](https://saucelabs.com/browser-matrix/xuset.svg)](https://saucelabs.com/u/xuset)
+[![Sauce Test Status](https://saucelabs.com/browser-matrix/xuset-idb-kv.svg)](https://saucelabs.com/u/xuset-idb-kv)
 
 idb-kv-store uses asynchronous get/set operations to persist everything in IndexDB. Sometimes IndexDB is needed over something like localStorage due to storage size constraints or simply, localStorage is not available within web workers. Since IndexDB presents a complex api, storing simple key-value pairs can be complicated which this project greatly simplifies. Since everything is persisted to IndexDB, the data you store is available across multiple web sessions and within web workers.
 
