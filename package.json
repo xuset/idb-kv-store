@@ -5,9 +5,8 @@
   "main": "index.js",
   "repository": "github:xuset/idb-kv-store",
   "scripts": {
-    "prepublish": "standard && npm run -s bundle",
     "standard": "standard",
-    "bundle": "browserify -r . -s IdbKeyStore | uglifyjs -m > idbkvstore.min.js",
+    "build": "browserify -r . -s IdbKvStore | uglifyjs -m > idbkvstore.min.js",
     "test-local": "standard && zuul --local -- test.js",
     "test": "standard && zuul -- test.js"
   },
