@@ -40,11 +40,7 @@ IdbKvStore.prototype.get = function (key, cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'get',
-      key: key,
-      cb: defer.cb
-    })
+    self._queue.push([self.get, key, defer.cb])
   } else if (Array.isArray(key)) {
     var result = []
     var erroredOut = false
@@ -83,12 +79,7 @@ IdbKvStore.prototype.set = function (key, value, cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'set',
-      key: key,
-      value: value,
-      cb: defer.cb
-    })
+    self._queue.push([self.set, key, value, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readwrite')
     var request = transaction.objectStore('kv').put(value, key)
@@ -111,10 +102,7 @@ IdbKvStore.prototype.json = function (cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'json',
-      cb: defer.cb
-    })
+    self._queue.push([self.json, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readonly')
     var request = transaction.objectStore('kv').openCursor()
@@ -144,10 +132,7 @@ IdbKvStore.prototype.keys = function (cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'keys',
-      cb: defer.cb
-    })
+    self._queue.push([self.keys, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readonly')
     var request = transaction.objectStore('kv').openCursor()
@@ -177,11 +162,7 @@ IdbKvStore.prototype.remove = function (key, cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'remove',
-      key: key,
-      cb: defer.cb
-    })
+    self._queue.push([self.remove, key, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readwrite')
     var request = transaction.objectStore('kv').delete(key)
@@ -204,10 +185,7 @@ IdbKvStore.prototype.clear = function (cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'clear',
-      cb: defer.cb
-    })
+    self._queue.push([self.clear, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readwrite')
     var request = transaction.objectStore('kv').clear()
@@ -230,10 +208,7 @@ IdbKvStore.prototype.count = function (cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'count',
-      cb: defer.cb
-    })
+    self._queue.push([self.count, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readonly')
     var request = transaction.objectStore('kv').count()
@@ -256,12 +231,7 @@ IdbKvStore.prototype.add = function (key, value, cb) {
   var defer = promisify(cb)
 
   if (!self._db) {
-    self._queue.push({
-      type: 'add',
-      key: key,
-      value: value,
-      cb: defer.cb
-    })
+    self._queue.push([self.add, key, value, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readwrite')
     var request = transaction.objectStore('kv').add(value, key)
@@ -289,23 +259,8 @@ IdbKvStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
     var item = self._queue[i]
-    if (item.type === 'get') {
-      self.get(item.key, item.cb)
-    } else if (item.type === 'set') {
-      self.set(item.key, item.value, item.cb)
-    } else if (item.type === 'json') {
-      self.json(item.cb)
-    } else if (item.type === 'keys') {
-      self.keys(item.cb)
-    } else if (item.type === 'remove') {
-      self.remove(item.key, item.cb)
-    } else if (item.type === 'clear') {
-      self.clear(item.cb)
-    } else if (item.type === 'count') {
-      self.count(item.cb)
-    } else if (item.type === 'add') {
-      self.add(item.key, item.value, item.cb)
-    }
+    var args = item.splice(1)
+    item[0].apply(self, args)
   }
   self._queue = null
 }
