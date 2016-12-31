@@ -34,13 +34,11 @@ store.set('abc', 'def')
 
 ## API
 
-### `store = new Store(name, [opts])`
+### `store = new Store(name, [cb])`
 
 Instantiates a new key-value store. `name` is the name of the database used to persist the data. So multiple Store instances with the same name will be sharing the same data.
 
-`opts` can take the following options:
- * `opts.onready` - A zero argument function to call when the IndexDB database is open
- * `opts.onerror` - This function is called when IndexDB experiences an error. It accepts one error argument. If this is undefined, the error is thrown instead.
+`cb(err)` is called when the databases is opened. If the open was successful then `err` is null, otherwise `err` contains the error.
 
 ### `store.set(key, value, [cb])`
 

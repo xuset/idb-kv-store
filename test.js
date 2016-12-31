@@ -16,9 +16,10 @@ test('create/get/set pre-ready', function (t) {
 
 test('create/get/set post-ready', function (t) {
   t.timeoutAfter(3000)
-  var store = createStore({ onready: onready })
+  var store = createStore(onopen)
 
-  function onready () {
+  function onopen (err) {
+    t.equal(err, null)
     store.set('abc', 'def', function (err) {
       t.equal(err, null)
       store.get('abc', function (err, value) {
@@ -226,7 +227,7 @@ test('add()', function (t) {
   })
 })
 
-function createStore (opts) {
+function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
-  return new IdbKeyStore(name, opts)
+  return new IdbKeyStore(name, cb)
 }

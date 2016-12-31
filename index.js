@@ -1,13 +1,13 @@
-module.exports = IdbKeyStore
+module.exports = IdbKvStore
 
 var scope = typeof window === 'undefined' ? self : window // eslint-disable-line
 var IDB = scope.indexedDB || scope.mozIndexedDB || scope.webkitIndexedDB || scope.msIndexedDB
 
-function IdbKeyStore (name, opts) {
+function IdbKvStore (name, cb) {
   var self = this
   if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
-  if (!(this instanceof IdbKeyStore)) return new IdbKeyStore(name, opts)
-  if (!opts) opts = {}
+  if (!IDB) throw new Error('IndexedDb not supported')
+  if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, cb)
 
   self._db = null
   self._queue = []
@@ -15,13 +15,13 @@ function IdbKeyStore (name, opts) {
   var request = IDB.open(name)
 
   request.onerror = function (event) {
-    onerror(event, opts.onerror)
+    onerror(event, cb)
   }
 
   request.onsuccess = function (event) {
     self._db = event.target.result
     self._drainQueue()
-    if (opts.onready) opts.onready()
+    if (cb) cb(null)
   }
 
   request.onupgradeneeded = function (event) {
@@ -30,7 +30,7 @@ function IdbKeyStore (name, opts) {
   }
 }
 
-IdbKeyStore.prototype.get = function (key, cb) {
+IdbKvStore.prototype.get = function (key, cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -72,7 +72,7 @@ IdbKeyStore.prototype.get = function (key, cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.set = function (key, value, cb) {
+IdbKvStore.prototype.set = function (key, value, cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -99,7 +99,7 @@ IdbKeyStore.prototype.set = function (key, value, cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.json = function (cb) {
+IdbKvStore.prototype.json = function (cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -131,7 +131,7 @@ IdbKeyStore.prototype.json = function (cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.keys = function (cb) {
+IdbKvStore.prototype.keys = function (cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -163,7 +163,7 @@ IdbKeyStore.prototype.keys = function (cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.remove = function (key, cb) {
+IdbKvStore.prototype.remove = function (key, cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -189,7 +189,7 @@ IdbKeyStore.prototype.remove = function (key, cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.clear = function (cb) {
+IdbKvStore.prototype.clear = function (cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -214,7 +214,7 @@ IdbKeyStore.prototype.clear = function (cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.count = function (cb) {
+IdbKvStore.prototype.count = function (cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -239,7 +239,7 @@ IdbKeyStore.prototype.count = function (cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype.add = function (key, value, cb) {
+IdbKvStore.prototype.add = function (key, value, cb) {
   var self = this
   var defer = promisify(cb)
 
@@ -266,7 +266,7 @@ IdbKeyStore.prototype.add = function (key, value, cb) {
   return defer.promise
 }
 
-IdbKeyStore.prototype._drainQueue = function () {
+IdbKvStore.prototype._drainQueue = function () {
   var self = this
   for (var i = 0; i < self._queue.length; i++) {
     var item = self._queue[i]
