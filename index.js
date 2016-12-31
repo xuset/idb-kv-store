@@ -10,21 +10,25 @@ function IdbKvStore (name, cb) {
   if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, cb)
 
   self._db = null
+  self._closed = false
   self._queue = []
 
   var request = IDB.open(name)
 
   request.onerror = function (event) {
+    self.close()
     onerror(event, cb)
   }
 
   request.onsuccess = function (event) {
+    if (self._closed) return
     self._db = event.target.result
     self._drainQueue()
     if (cb) cb(null)
   }
 
   request.onupgradeneeded = function (event) {
+    if (self._closed) return
     var db = event.target.result
     db.createObjectStore('kv')
   }
@@ -32,6 +36,7 @@ function IdbKvStore (name, cb) {
 
 IdbKvStore.prototype.get = function (key, cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -74,6 +79,7 @@ IdbKvStore.prototype.get = function (key, cb) {
 
 IdbKvStore.prototype.set = function (key, value, cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -101,6 +107,7 @@ IdbKvStore.prototype.set = function (key, value, cb) {
 
 IdbKvStore.prototype.json = function (cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -133,6 +140,7 @@ IdbKvStore.prototype.json = function (cb) {
 
 IdbKvStore.prototype.keys = function (cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -165,6 +173,7 @@ IdbKvStore.prototype.keys = function (cb) {
 
 IdbKvStore.prototype.remove = function (key, cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -191,6 +200,7 @@ IdbKvStore.prototype.remove = function (key, cb) {
 
 IdbKvStore.prototype.clear = function (cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -216,6 +226,7 @@ IdbKvStore.prototype.clear = function (cb) {
 
 IdbKvStore.prototype.count = function (cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -241,6 +252,7 @@ IdbKvStore.prototype.count = function (cb) {
 
 IdbKvStore.prototype.add = function (key, value, cb) {
   var self = this
+  if (self._closed) throw new Error('Database is closed')
   var defer = promisify(cb)
 
   if (!self._db) {
@@ -264,6 +276,13 @@ IdbKvStore.prototype.add = function (key, value, cb) {
   }
 
   return defer.promise
+}
+
+IdbKvStore.prototype.close = function () {
+  if (this._closed) return
+  this._closed = true
+  if (this._db) this._db.close()
+  this._queue = null
 }
 
 IdbKvStore.prototype._drainQueue = function () {

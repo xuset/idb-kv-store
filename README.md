@@ -72,6 +72,11 @@ Retrieves the entire key-value store as a json object. When the json representat
 
 Retrieves the number of entries in the store, and calls `cb(err, count)` upon retrieval. `err` is null if the count was successful, in which case `count` will hold the value. If `cb` is undefined, then a promise is returned.
 
+
+### `store.close()`
+
+Closes the IndexedDB database and frees the internal resources. All subsequent calls to methods in `store` will throw errors.
+
 ## License
 
 MIT. Copyright (c) Austin Middleton.

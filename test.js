@@ -227,6 +227,16 @@ test('add()', function (t) {
   })
 })
 
+test('close()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore(function () {
+    store.close()
+    t.throws(function () { store.get() })
+    t.throws(function () { store.set() })
+    t.end()
+  })
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKeyStore(name, cb)
