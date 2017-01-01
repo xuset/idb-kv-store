@@ -6,7 +6,7 @@ Persistent key-value store for web browsers backed by IndexedDB
 
 idb-kv-store uses asynchronous get/set operations to persist everything in IndexedDB. Sometimes IndexedDB is needed over something like localStorage due to storage size constraints or simply, localStorage is not available within web workers. Since IndexedDB presents a complex api, storing simple key-value pairs can be complicated which this project greatly simplifies. Since everything is persisted to IndexedDB, the data you store is available across multiple web sessions and within web workers.
 
-This module can be used with [browserify](http://browserify.org/) or the [idbkvstore.min.js](idbkvstore.min.js) script can be included which will attach `IdbKvStore` to `window`.
+This module can be used with [browserify](http://browserify.org/) or the [idbkvstore.min.js](https://raw.githubusercontent.com/xuset/idb-kv-store/master/idbkvstore.min.js) script can be included which will attach `IdbKvStore` to `window`.
 
 ## Usage
 
