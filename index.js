@@ -14,23 +14,34 @@ function IdbKvStore (name, cb) {
   self._queue = []
 
   var request = IDB.open(name)
+  request.onerror = onerror
+  request.onsuccess = onsuccess
+  request.onupgradeneeded = onupgradeneeded
 
-  request.onerror = function (event) {
+  function onerror (event) {
     self.close()
-    onerror(event, cb)
+    handleError(event, cb)
   }
 
-  request.onsuccess = function (event) {
-    if (self._closed) return
-    self._db = event.target.result
-    self._drainQueue()
-    if (cb) cb(null)
+  function onsuccess (event) {
+    if (self._closed) {
+      event.target.result.close()
+    } else {
+      self._db = event.target.result
+      self._db.onclose = onclose
+      self._drainQueue()
+      if (cb) cb(null)
+    }
   }
 
-  request.onupgradeneeded = function (event) {
+  function onupgradeneeded (event) {
     if (self._closed) return
     var db = event.target.result
     db.createObjectStore('kv')
+  }
+
+  function onclose () {
+    self.close()
   }
 }
 
@@ -66,7 +77,7 @@ IdbKvStore.prototype.get = function (key, cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -89,7 +100,7 @@ IdbKvStore.prototype.set = function (key, value, cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -119,7 +130,7 @@ IdbKvStore.prototype.json = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -149,7 +160,7 @@ IdbKvStore.prototype.keys = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -172,7 +183,7 @@ IdbKvStore.prototype.remove = function (key, cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -195,7 +206,7 @@ IdbKvStore.prototype.clear = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -218,7 +229,7 @@ IdbKvStore.prototype.count = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -241,7 +252,7 @@ IdbKvStore.prototype.add = function (key, value, cb) {
     }
 
     transaction.onerror = function (event) {
-      onerror(event, defer.cb)
+      handleError(event, defer.cb)
     }
   }
 
@@ -282,7 +293,7 @@ function promisify (cb) {
   return defer
 }
 
-function onerror (event, cb) {
+function handleError (event, cb) {
   var err = new Error('IDB error')
   err.event = event
 
