@@ -3,22 +3,27 @@
   "version": "3.0.0",
   "description": "Persistent key-value store for web browsers backed by IndexedDB",
   "main": "index.js",
-  "repository": "github:xuset/idb-kv-store",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xuset/idb-kv-store.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xuset/indexeddb-chunk-store/issues"
+  },
+  "homepage": "https://github.com/xuset/indexeddb-chunk-store#readme",
   "scripts": {
     "standard": "standard",
     "build": "browserify -r . -s IdbKvStore | uglifyjs -m > idbkvstore.min.js",
     "test-local": "standard && zuul --local -- test.js",
     "test": "standard && zuul -- test.js"
   },
-  "files": [
-    "idbkvstore.min.js"
-  ],
   "keywords": [
     "indexeddb",
     "indexdb",
     "idb",
     "key",
     "value",
+    "kv",
     "store"
   ],
   "author": "xuset",
@@ -30,10 +35,5 @@
     "uglify-js": "^2.7.4",
     "zuul": "^3.11.1"
   },
-  "dependencies": {},
-  "standard": {
-    "ignore": [
-      "test.bundle.js"
-    ]
-  }
+  "dependencies": {}
 }
