@@ -3,10 +3,12 @@ module.exports = IdbKvStore
 var scope = typeof window === 'undefined' ? self : window // eslint-disable-line
 var IDB = scope.indexedDB || scope.mozIndexedDB || scope.webkitIndexedDB || scope.msIndexedDB
 
+IdbKvStore.INDEXEDDB_SUPPORT = IDB != null
+
 function IdbKvStore (name, cb) {
   var self = this
   if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
-  if (!IDB) throw new Error('IndexedDb not supported')
+  if (!IDB) throw new Error('IndexedDB not supported')
   if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, cb)
 
   self._db = null

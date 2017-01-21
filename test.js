@@ -1,4 +1,4 @@
-var IdbKeyStore = require('.')
+var IdbKvStore = require('.')
 var test = require('tape')
 
 test('create/get/set pre-ready', function (t) {
@@ -155,8 +155,8 @@ test('keys()', function (t) {
 
 test('error cases', function (t) {
   t.timeoutAfter(3000)
-  t.throws(function () { return new IdbKeyStore() })
-  t.throws(function () { return new IdbKeyStore({}) })
+  t.throws(function () { return new IdbKvStore() })
+  t.throws(function () { return new IdbKvStore({}) })
   t.end()
 })
 
@@ -237,7 +237,12 @@ test('close()', function (t) {
   })
 })
 
+test('INDEXEDDB_SUPPORT', function (t) {
+  t.equal(IdbKvStore.INDEXEDDB_SUPPORT, true)
+  t.end()
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
-  return new IdbKeyStore(name, cb)
+  return new IdbKvStore(name, cb)
 }
