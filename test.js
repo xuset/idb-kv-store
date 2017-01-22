@@ -237,8 +237,9 @@ test('close()', function (t) {
   })
 })
 
-test('INDEXEDDB_SUPPORT', function (t) {
+test('SUPPORT constants', function (t) {
   t.equal(IdbKvStore.INDEXEDDB_SUPPORT, true)
+  t.equal(IdbKvStore.BROADCAST_SUPPORT, true)
   t.end()
 })
 
@@ -253,6 +254,54 @@ test('open/close event', function (t) {
   }
 
   function onClose () {
+    t.end()
+  }
+})
+
+test('change event', function (t) {
+  t.timeoutAfter(3000)
+  var name = '' + (Math.round(9e16 * Math.random()))
+  var storeA = IdbKvStore(name)
+  var storeB = IdbKvStore(name)
+
+  storeA.on('change', function (change) {
+    t.fail()
+  })
+
+  storeB.once('change', onAdd)
+  storeA.add('foo', 'bar', function (err) {
+    t.equal(err, null)
+  })
+
+  function onAdd (change) {
+    t.deepEqual({
+      method: 'add',
+      key: 'foo',
+      value: 'bar'
+    }, change)
+    storeB.once('change', onSet)
+    storeA.set('foo', 'barbar', function (err) {
+      t.equal(err, null)
+    })
+  }
+
+  function onSet (change) {
+    t.deepEqual({
+      method: 'set',
+      key: 'foo',
+      value: 'barbar'
+    }, change)
+    storeB.once('change', onRemove)
+    storeA.remove('foo', function (err) {
+      t.equal(err, null)
+    })
+  }
+
+  function onRemove (change) {
+    t.deepEqual({
+      method: 'remove',
+      key: 'foo'
+    }, change)
     t.end()
   }
 })

@@ -3,28 +3,36 @@ module.exports = IdbKvStore
 var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
 
-var scope = typeof window === 'undefined' ? self : window // eslint-disable-line
-var IDB = scope.indexedDB || scope.mozIndexedDB || scope.webkitIndexedDB || scope.msIndexedDB
+var global = typeof window === 'undefined' ? self : window // eslint-disable-line
+var IDB = global.indexedDB || global.mozIndexedDB || global.webkitIndexedDB || global.msIndexedDB
 
 IdbKvStore.INDEXEDDB_SUPPORT = IDB != null
+IdbKvStore.BROADCAST_SUPPORT = global.BroadcastChannel != null
 
 inherits(IdbKvStore, EventEmitter)
-function IdbKvStore (name, cb) {
+function IdbKvStore (name, opts, cb) {
   var self = this
   if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
   if (!IDB) throw new Error('IndexedDB not supported')
-  if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, cb)
+  if (typeof opts === 'function') return new IdbKvStore(name, null, opts)
+  if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, opts, cb)
+  if (!opts) opts = {}
 
   EventEmitter.call(self)
 
+  self._name = name
   self._db = null
   self._closed = false
   self._queue = []
+  self._Channel = opts.channel || global.BroadcastChannel
+  self._channel = null
 
   var request = IDB.open(name)
   request.onerror = onerror
   request.onsuccess = onsuccess
   request.onupgradeneeded = onupgradeneeded
+
+  self.on('newListener', onNewListener)
 
   function onerror (event) {
     self.close()
@@ -51,6 +59,18 @@ function IdbKvStore (name, cb) {
 
   function onclose () {
     self.close()
+  }
+
+  function onNewListener (event) {
+    if (event !== 'change') return
+    if (!self._Channel) throw new Error('No BroadcastChannel support')
+    self._channel = new self._Channel(self._name)
+    self._channel.onmessage = onChange
+    self.removeListener('newListener', onNewListener)
+  }
+
+  function onChange (event) {
+    self.emit('change', event.data)
   }
 }
 
@@ -105,6 +125,13 @@ IdbKvStore.prototype.set = function (key, value, cb) {
     var request = transaction.objectStore('kv').put(value, key)
 
     request.onsuccess = function () {
+      if (self._channel) {
+        self._channel.postMessage({
+          method: 'set',
+          key: key,
+          value: value
+        })
+      }
       defer.cb(null)
     }
 
@@ -188,6 +215,12 @@ IdbKvStore.prototype.remove = function (key, cb) {
     var request = transaction.objectStore('kv').delete(key)
 
     request.onsuccess = function (event) {
+      if (self._channel) {
+        self._channel.postMessage({
+          method: 'remove',
+          key: key
+        })
+      }
       defer.cb(null)
     }
 
@@ -257,6 +290,13 @@ IdbKvStore.prototype.add = function (key, value, cb) {
     var request = transaction.objectStore('kv').add(value, key)
 
     request.onsuccess = function (event) {
+      if (self._channel) {
+        self._channel.postMessage({
+          method: 'add',
+          key: key,
+          value: value
+        })
+      }
       defer.cb(null)
     }
 
@@ -271,9 +311,17 @@ IdbKvStore.prototype.add = function (key, value, cb) {
 IdbKvStore.prototype.close = function () {
   if (this._closed) return
   this._closed = true
+
   if (this._db) this._db.close()
+  if (this._channel) this._channel.close()
+
+  this._db = null
+  this._channel = null
   this._queue = null
+
   this.emit('close')
+
+  this.removeAllListeners()
 }
 
 IdbKvStore.prototype._drainQueue = function () {

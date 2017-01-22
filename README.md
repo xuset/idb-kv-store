@@ -4,7 +4,9 @@ Persistent key-value store for web browsers backed by IndexedDB
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/xuset-idb-kv.svg)](https://saucelabs.com/u/xuset-idb-kv)
 
-idb-kv-store uses asynchronous get/set operations to persist everything in IndexedDB. Sometimes IndexedDB is needed over something like localStorage due to storage size constraints or simply, localStorage is not available within web workers. Since IndexedDB presents a complex api, storing simple key-value pairs can be complicated which this project greatly simplifies. Since everything is persisted to IndexedDB, the data you store is available across multiple web sessions and within web workers.
+idb-kv-store uses asynchronous operations to persist and retrieve key-value pairs from the underlying database. The idb-kv-store instance presents a much simpler api than IndexedDB, doesn't have the very limiting data size constraints of localStorage, and the persisted data is available between different instances, web sessions, and web workers.
+
+Additionally, the 'change' event allows users to listen for database changes that occur in different instances, windows, or workers.
 
 This module can be used with [browserify](http://browserify.org/) or the [idbkvstore.min.js](https://raw.githubusercontent.com/xuset/idb-kv-store/master/idbkvstore.min.js) script can be included which will attach `IdbKvStore` to `window`.
 
@@ -34,11 +36,14 @@ store.set('abc', 'def')
 
 ## API
 
-### `store = new IdbKvStore(name, [cb])`
+### `store = new IdbKvStore(name, [opts], [cb])`
 
 Instantiates a new key-value store. `name` is the name of the database used to persist the data. So multiple Store instances with the same name will be sharing the same data.
 
 `cb(err)` is called when the databases is opened. If the open was successful then `err` is null, otherwise `err` contains the error.
+
+`opts` can have the following property:
+ * opts.channel - If the browser does not natively support BroadcastChannel then a custom implementation can be passed in.
 
 ### `store.set(key, value, [cb])`
 
@@ -80,17 +85,31 @@ Closes the IndexedDB database and frees the internal resources. All subsequent c
 
 Detects native IndexedDB support
 
+### `IdbKvStore.BROADCAST_SUPPORT`
+
+Detects native BroadcastChannel support. If the BroadcastChannel api is not present then the 'change' event will never be emitted.
+
 ## Events
 
-### `store.on('open', function() {})`
+### `store.on('open', function () {})`
 
 Emitted when the database is open
 
-### `store.on('close', function() {})`
+### `store.on('change', function (change) {})`
+
+When another instance makes a modifying change to the database this event is emitted on all instances of the same database except for the instance that initiated the operation. `change` has the following properties:
+
+ * change.method - Either: 'add', 'set', 'remove'
+ * change.key - the key that was modifed
+ * change.value - the new value stored at `key`. Only defined for 'add' and 'set'
+
+For the 'change' event to be emitted the browser must have implemented the BroadcastChannel api . If the api does not exist, then setting a listener for this event will throw an error. To detect if native BroadcastChannel support exists, see: `IdbKvStore.BROADCAST_SUPPORT`.
+
+### `store.on('close', function () {})`
 
 Emitted when the database is closed
 
-### `store.on('error', function(err) {})`
+### `store.on('error', function (err) {})`
 
 Emitted if any unhandled error occures. If an error occures in a function that was passed a callback, the error will be propagated through the callback instead of this event. If there is no callback to handle the error, then this event is emitted.
 
