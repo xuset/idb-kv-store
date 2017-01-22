@@ -80,6 +80,20 @@ Closes the IndexedDB database and frees the internal resources. All subsequent c
 
 Detects native IndexedDB support
 
+## Events
+
+### `store.on('open', function() {})`
+
+Emitted when the database is open
+
+### `store.on('close', function() {})`
+
+Emitted when the database is closed
+
+### `store.on('error', function(err) {})`
+
+Emitted if any unhandled error occures. If an error occures in a function that was passed a callback, the error will be propagated through the callback instead of this event. If there is no callback to handle the error, then this event is emitted.
+
 ## License
 
 MIT. Copyright (c) Austin Middleton.

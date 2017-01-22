@@ -242,6 +242,21 @@ test('INDEXEDDB_SUPPORT', function (t) {
   t.end()
 })
 
+test('open/close event', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.on('open', onOpen)
+  store.on('close', onClose)
+
+  function onOpen () {
+    store.close()
+  }
+
+  function onClose () {
+    t.end()
+  }
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKvStore(name, cb)

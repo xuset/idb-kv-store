@@ -35,5 +35,7 @@
     "uglify-js": "^2.7.4",
     "zuul": "^3.11.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "inherits": "^2.0.3"
+  }
 }

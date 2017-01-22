@@ -1,15 +1,21 @@
 module.exports = IdbKvStore
 
+var EventEmitter = require('events').EventEmitter
+var inherits = require('inherits')
+
 var scope = typeof window === 'undefined' ? self : window // eslint-disable-line
 var IDB = scope.indexedDB || scope.mozIndexedDB || scope.webkitIndexedDB || scope.msIndexedDB
 
 IdbKvStore.INDEXEDDB_SUPPORT = IDB != null
 
+inherits(IdbKvStore, EventEmitter)
 function IdbKvStore (name, cb) {
   var self = this
   if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
   if (!IDB) throw new Error('IndexedDB not supported')
   if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, cb)
+
+  EventEmitter.call(self)
 
   self._db = null
   self._closed = false
@@ -22,7 +28,7 @@ function IdbKvStore (name, cb) {
 
   function onerror (event) {
     self.close()
-    handleError(event, cb)
+    self._handleError(event, cb)
   }
 
   function onsuccess (event) {
@@ -33,6 +39,7 @@ function IdbKvStore (name, cb) {
       self._db.onclose = onclose
       self._drainQueue()
       if (cb) cb(null)
+      self.emit('open')
     }
   }
 
@@ -79,7 +86,7 @@ IdbKvStore.prototype.get = function (key, cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -102,7 +109,7 @@ IdbKvStore.prototype.set = function (key, value, cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -132,7 +139,7 @@ IdbKvStore.prototype.json = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -162,7 +169,7 @@ IdbKvStore.prototype.keys = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -185,7 +192,7 @@ IdbKvStore.prototype.remove = function (key, cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -208,7 +215,7 @@ IdbKvStore.prototype.clear = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -231,7 +238,7 @@ IdbKvStore.prototype.count = function (cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -254,7 +261,7 @@ IdbKvStore.prototype.add = function (key, value, cb) {
     }
 
     transaction.onerror = function (event) {
-      handleError(event, defer.cb)
+      self._handleError(event, defer.cb)
     }
   }
 
@@ -266,6 +273,7 @@ IdbKvStore.prototype.close = function () {
   this._closed = true
   if (this._db) this._db.close()
   this._queue = null
+  this.emit('close')
 }
 
 IdbKvStore.prototype._drainQueue = function () {
@@ -276,6 +284,17 @@ IdbKvStore.prototype._drainQueue = function () {
     item[0].apply(self, args)
   }
   self._queue = null
+}
+
+IdbKvStore.prototype._handleError = function (event, cb) {
+  var err = new Error('IDB error')
+  err.event = event
+
+  if (cb) {
+    cb(err)
+  } else {
+    this.emit('error', err)
+  }
 }
 
 function promisify (cb) {
@@ -293,15 +312,4 @@ function promisify (cb) {
   if (!defer.cb) defer.cb = function noop () {}
 
   return defer
-}
-
-function handleError (event, cb) {
-  var err = new Error('IDB error')
-  err.event = event
-
-  if (cb) {
-    cb(err)
-  } else {
-    throw err
-  }
 }
