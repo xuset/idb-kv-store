@@ -63,7 +63,7 @@ function IdbKvStore (name, opts, cb) {
 
   function onNewListener (event) {
     if (event !== 'change') return
-    if (!self._Channel) throw new Error('No BroadcastChannel support')
+    if (!self._Channel) return self.emit('error', new Error('No BroadcastChannel support'))
     self._channel = new self._Channel(self._name)
     self._channel.onmessage = onChange
     self.removeListener('newListener', onNewListener)

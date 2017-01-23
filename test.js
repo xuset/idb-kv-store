@@ -239,7 +239,7 @@ test('close()', function (t) {
 
 test('SUPPORT constants', function (t) {
   t.equal(IdbKvStore.INDEXEDDB_SUPPORT, true)
-  t.equal(IdbKvStore.BROADCAST_SUPPORT, true)
+  t.ok('BROADCAST_SUPPORT' in IdbKvStore)
   t.end()
 })
 
@@ -258,8 +258,22 @@ test('open/close event', function (t) {
   }
 })
 
+test('listen on "change" fails if not supported', function (t) {
+  t.timeoutAfter(3000)
+  if (IdbKvStore.BROADCAST_SUPPORT) return t.end()
+
+  var store = createStore()
+  store.on('error', function (err) {
+    t.ok(err instanceof Error)
+    t.end()
+  })
+
+  store.on('change', function () {})
+})
+
 test('change event', function (t) {
   t.timeoutAfter(3000)
+  if (!IdbKvStore.BROADCAST_SUPPORT) return t.end()
   var name = '' + (Math.round(9e16 * Math.random()))
   var storeA = IdbKvStore(name)
   var storeB = IdbKvStore(name)
