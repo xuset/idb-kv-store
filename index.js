@@ -336,6 +336,7 @@ IdbKvStore.prototype._drainQueue = function () {
 
 IdbKvStore.prototype._handleError = function (event, cb) {
   var err = event.target.error
+  event.preventDefault()
 
   if (cb) {
     cb(err)
