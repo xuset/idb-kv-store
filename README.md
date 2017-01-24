@@ -101,15 +101,34 @@ Detects native BroadcastChannel support. If the BroadcastChannel api is not pres
 
 Emitted when the database is open
 
-### `store.on('change', function (change) {})`
+### `store.on('add', function (change) {})`
 
-When another instance makes a modifying change to the database this event is emitted on all instances of the same database except for the instance that initiated the operation. `change` has the following properties:
+Emitted when another instance adds an item to the database by calling `store.add(...)`. The `change` object has the following properties:
 
- * change.method - Either: 'add', 'set', 'remove'
- * change.key - the key that was modifed
- * change.value - the new value stored at `key`. Only defined for 'add' and 'set'
+* `change.method` - always set to 'add'
+* `change.key` - the key that value was added to
+* `change.value` - the new value
 
-For the 'change' event to be emitted the browser must have implemented the BroadcastChannel api . If the api does not exist, then setting a listener for this event will throw an error. To detect if native BroadcastChannel support exists, see: `IdbKvStore.BROADCAST_SUPPORT`.
+See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
+
+### `store.on('set', function (change) {})`
+
+Emitted when another instance sets the value of a key in the database by calling `store.set(...)`. The `change` object has the following properties:
+
+* `change.method` - always set to 'set'
+* `change.key` - the key that value was set to
+* `change.value` - the new value
+
+See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
+
+### `store.on('remove', function (change) {})`
+
+Emitted when another instance removes an item from the database by calling `store.remove(...)`. The `change` object has the following properties:
+
+* `change.method` - always set to 'remove'
+* `change.key` - the key of the value that was removed
+
+See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
 
 ### `store.on('close', function () {})`
 
@@ -117,7 +136,13 @@ Emitted when the database is closed
 
 ### `store.on('error', function (err) {})`
 
-Emitted if any unhandled error occures. If an error occures in a function that was passed a callback, the error will be propagated through the callback instead of this event. If there is no callback to handle the error, then this event is emitted.
+Emitted if any unhandled error occures.
+
+## Supported Browsers
+
+idb-kv-store supports all browsers that have implemented the IndexedDB api. However, the mutation events, add/set/remove, are only available in browsers that have implemented the BroadcastChannel api. Attempting to listen on a add/set/remove event in a browser that does not support the BroadcastChannel api will cause an error to be emitted. `IdbKvStore.BROADCAST_SUPPORT` will indicate if the browser supports this api.
+
+The list of browsers that support BroadcastChannels can be found on [caniuse.com](http://caniuse.com/#search=broadcastchannel)
 
 ## License
 

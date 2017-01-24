@@ -62,7 +62,7 @@ function IdbKvStore (name, opts, cb) {
   }
 
   function onNewListener (event) {
-    if (event !== 'change') return
+    if (event !== 'add' && event !== 'set' && event !== 'remove') return
     if (!self._Channel) return self.emit('error', new Error('No BroadcastChannel support'))
     self._channel = new self._Channel(self._name)
     self._channel.onmessage = onChange
@@ -70,7 +70,9 @@ function IdbKvStore (name, opts, cb) {
   }
 
   function onChange (event) {
-    self.emit('change', event.data)
+    if (event.data.method === 'add') self.emit('add', event.data)
+    else if (event.data.method === 'set') self.emit('set', event.data)
+    else if (event.data.method === 'remove') self.emit('remove', event.data)
   }
 }
 

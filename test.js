@@ -258,31 +258,48 @@ test('open/close event', function (t) {
   }
 })
 
-test('listen on "change" fails if not supported', function (t) {
+test('listen on add/set/remove events fail if not supported', function (t) {
   t.timeoutAfter(3000)
   if (IdbKvStore.BROADCAST_SUPPORT) return t.end()
 
   var store = createStore()
-  store.on('error', function (err) {
+  store.once('error', addError)
+
+  store.on('add', function () {})
+
+  function addError (err) {
+    t.ok(err instanceof Error)
+    store.once('error', setError)
+    store.on('set', function () {})
+  }
+
+  function setError (err) {
+    t.ok(err instanceof Error)
+    store.once('error', removeError)
+    store.on('remove', function () {})
+  }
+
+  function removeError (err) {
     t.ok(err instanceof Error)
     t.end()
-  })
-
-  store.on('change', function () {})
+  }
 })
 
-test('change event', function (t) {
+test('add/set/remove events', function (t) {
   t.timeoutAfter(3000)
   if (!IdbKvStore.BROADCAST_SUPPORT) return t.end()
   var name = '' + (Math.round(9e16 * Math.random()))
   var storeA = IdbKvStore(name)
   var storeB = IdbKvStore(name)
 
-  storeA.on('change', function (change) {
-    t.fail()
-  })
+  storeA.on('add', fail)
+  storeA.on('set', fail)
+  storeA.on('remove', fail)
 
-  storeB.once('change', onAdd)
+  storeB.on('add', onAdd)
+  storeB.on('set', onSet)
+  storeB.on('remove', onRemove)
+
   storeA.add('foo', 'bar', function (err) {
     t.equal(err, null)
   })
@@ -293,7 +310,7 @@ test('change event', function (t) {
       key: 'foo',
       value: 'bar'
     }, change)
-    storeB.once('change', onSet)
+
     storeA.set('foo', 'barbar', function (err) {
       t.equal(err, null)
     })
@@ -305,7 +322,7 @@ test('change event', function (t) {
       key: 'foo',
       value: 'barbar'
     }, change)
-    storeB.once('change', onRemove)
+
     storeA.remove('foo', function (err) {
       t.equal(err, null)
     })
@@ -317,6 +334,10 @@ test('change event', function (t) {
       key: 'foo'
     }, change)
     t.end()
+  }
+
+  function fail () {
+    t.fail()
   }
 })
 
