@@ -49,9 +49,11 @@ Instantiates a new key-value store. `name` is the name of the database used to p
 
 Stores the `value` at `key`; the value can be retrieved through `store.get(key)`. When the store operation completes, `cb` is called with `cb(err)`. `err` is null if the store was successful. If `cb` is undefined then a promise is returned instead. If the key already exists then the old value is replaced with the new one.
 
-### `store.add(key, value, [cb])`
+### `store.add([key], value, [cb])`
 
 The same as `store.set(...)` except if the key already exists, an error is returned in the callback.
+
+Additionally, the key is optional. If left empty then an integer key will be automatically generated. Example: `store.add('value')`
 
 ### `store.get(key, [cb])`
 

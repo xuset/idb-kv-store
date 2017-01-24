@@ -54,7 +54,7 @@ function IdbKvStore (name, opts, cb) {
   function onupgradeneeded (event) {
     if (self._closed) return
     var db = event.target.result
-    db.createObjectStore('kv')
+    db.createObjectStore('kv', {autoIncrement: true})
   }
 
   function onclose () {
@@ -281,13 +281,16 @@ IdbKvStore.prototype.count = function (cb) {
 IdbKvStore.prototype.add = function (key, value, cb) {
   var self = this
   if (self._closed) throw new Error('Database is closed')
+  if (typeof value === 'function' || arguments.length === 1) return self.add(undefined, key, value)
   var defer = promisify(cb)
 
   if (!self._db) {
     self._queue.push([self.add, key, value, defer.cb])
   } else {
     var transaction = self._db.transaction('kv', 'readwrite')
-    var request = transaction.objectStore('kv').add(value, key)
+    var request = key == null
+      ? transaction.objectStore('kv').add(value)
+      : transaction.objectStore('kv').add(value, key)
 
     request.onsuccess = function (event) {
       if (self._channel) {

@@ -320,6 +320,22 @@ test('change event', function (t) {
   }
 })
 
+test('add() - autoIncremement key', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.set('foo', 'bar', function (err) {
+    t.equal(err, null)
+    store.add('foobar', function (err) {
+      t.equal(err, null)
+      store.json(function (err, json) {
+        t.equal(err, null)
+        t.deepEqual(json, {1: 'foobar', 'foo': 'bar'})
+        t.end()
+      })
+    })
+  })
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKvStore(name, cb)
