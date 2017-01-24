@@ -336,6 +336,22 @@ test('add() - autoIncremement key', function (t) {
   })
 })
 
+test('values()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  store.add('A', function (err) {
+    t.equal(err, null)
+    store.add('B', function (err) {
+      t.equal(err, null)
+      store.values(function (err, values) {
+        t.equal(err, null)
+        t.deepEqual(values, ['A', 'B'])
+        t.end()
+      })
+    })
+  })
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKvStore(name, cb)

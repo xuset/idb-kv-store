@@ -203,6 +203,36 @@ IdbKvStore.prototype.keys = function (cb) {
   return defer.promise
 }
 
+IdbKvStore.prototype.values = function (cb) {
+  var self = this
+  if (self._closed) throw new Error('Database is closed')
+  var defer = promisify(cb)
+
+  if (!self._db) {
+    self._queue.push([self.values, defer.cb])
+  } else {
+    var transaction = self._db.transaction('kv', 'readonly')
+    var request = transaction.objectStore('kv').openCursor()
+
+    var values = []
+    request.onsuccess = function (event) {
+      var cursor = event.target.result
+      if (cursor) {
+        values.push(cursor.value)
+        cursor.continue()
+      } else {
+        defer.cb(null, values)
+      }
+    }
+
+    transaction.onerror = function (event) {
+      self._handleError(event, defer.cb)
+    }
+  }
+
+  return defer.promise
+}
+
 IdbKvStore.prototype.remove = function (key, cb) {
   var self = this
   if (self._closed) throw new Error('Database is closed')

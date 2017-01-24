@@ -71,6 +71,10 @@ Removes all entries from the store, and calls `cb(err)` upon completion. `err` i
 
 Retrieves the list of keys stored. When the list is retrieved, `cb` is called with `cb(err, keys)`. If `cb` is undefined then a promise is returned.
 
+### `store.values([cb])`
+
+Retrieves the list of values stored. When the list is retrieved, `cb` is called with `cb(err, keys)`. If `cb` is undefined then a promise is returned.
+
 ### `store.json([cb])`
 
 Retrieves the entire key-value store as a json object. When the json representation has been retrieved, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
