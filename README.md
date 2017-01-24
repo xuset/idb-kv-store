@@ -1,19 +1,19 @@
 # idb-kv-store [![Build Status](https://travis-ci.org/xuset/idb-kv-store.svg?branch=master)](https://travis-ci.org/xuset/idb-kv-store) [![npm](https://img.shields.io/npm/v/idb-kv-store.svg)](https://npmjs.org/package/idb-kv-store)
 
-Persistent key-value store for web browsers backed by IndexedDB
+#### Simple key-value store backed by IndexedDB
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/xuset-idb-kv.svg)](https://saucelabs.com/u/xuset-idb-kv)
 
 idb-kv-store uses asynchronous operations to persist and retrieve key-value pairs from the underlying database. The idb-kv-store instance presents a much simpler api than IndexedDB, doesn't have the very limiting data size constraints of localStorage, and the persisted data is available between different instances, web sessions, and web workers.
 
-Additionally, the 'change' event allows users to listen for database changes that occur in different instances, windows, or workers.
+Additionally, mutation events allow users to listen for database changes that occur in different instances, windows, or workers.
 
 This module can be used with [browserify](http://browserify.org/) or the [idbkvstore.min.js](https://raw.githubusercontent.com/xuset/idb-kv-store/master/idbkvstore.min.js) script can be included which will attach `IdbKvStore` to `window`.
 
 ## Usage
 
 ```js
-var store = new IdbKvStore('your stores name')
+var store = new IdbKvStore('the name of store')
 
 // Store the value 'def' at key 'abc'
 store.set('abc', 'def', function (err) {
@@ -26,12 +26,20 @@ store.set('abc', 'def', function (err) {
 Promises are also supported!
 
 ```js
-var store = new IdbKvStore('your stores name')
+store.get('abc').then(value => {
+  console.log('key=abc  value=' + value)
+})
+```
 
-// Store the value 'def' at key 'abc'
-store.set('abc', 'def')
-.then(() => store.get('abc'))
-.then((value) => console.log('key=abc  value=' + value))
+Listen for database mutation events
+
+```js
+store.on('add', change => {
+  console.log('key=' + change.key, 'value=' + change.value)
+})
+
+// 'add' fails if the key already exists
+someOtherStore.add('foo', 'bar')
 ```
 
 ## API
@@ -93,7 +101,7 @@ Detects native IndexedDB support
 
 ### `IdbKvStore.BROADCAST_SUPPORT`
 
-Detects native BroadcastChannel support. If the BroadcastChannel api is not present then the 'change' event will never be emitted.
+Detects native BroadcastChannel support. If the BroadcastChannel api is not present then the mutation events will not be emitted.
 
 ## Events
 
