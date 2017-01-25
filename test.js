@@ -1,5 +1,6 @@
 var IdbKvStore = require('.')
 var test = require('tape')
+var runParallel = require('run-parallel-limit')
 
 test('create/get/set pre-ready', function (t) {
   t.timeoutAfter(3000)
@@ -392,6 +393,32 @@ test('broadcast event event with no listener', function (t) {
     }, change)
     t.end()
   }
+})
+
+test.skip('benchmark', function (t) {
+  var buffSize = 4 * 1024
+  var storeCount = 10000
+
+  var buffer = Buffer.alloc(buffSize)
+  var store = createStore()
+
+  var tasks = []
+  for (var i = 0; i < storeCount; i++) {
+    tasks.push(function (cb) { store.add(buffer, cb) })
+  }
+
+  console.log('Storing', storeCount, 'elements at', buffSize / 1024, 'kB per elements')
+
+  var start = new Date().getTime()
+  runParallel(tasks, 10, function (err) {
+    t.equal(err, null)
+    var totalTime = (new Date().getTime() - start) / 1000
+    var totalSize = buffSize * storeCount / 1024
+    var throughput = Math.round(totalSize / totalTime)
+
+    console.log('total time =', totalTime, 'seconds. throughput =', throughput, 'kB/seconds')
+    t.end()
+  })
 })
 
 function createStore (cb) {

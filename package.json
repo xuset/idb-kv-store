@@ -36,6 +36,7 @@
     "karma-firefox-launcher": "^1.0.0",
     "karma-sauce-launcher": "^1.1.0",
     "karma-tap": "^3.1.1",
+    "run-parallel-limit": "^1.0.3",
     "standard": "^8.6.0",
     "tape": "^4.6.3",
     "uglify-js": "^2.7.4",
