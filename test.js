@@ -373,6 +373,27 @@ test('values()', function (t) {
   })
 })
 
+test('broadcast event event with no listener', function (t) {
+  t.timeoutAfter(3000)
+  if (!IdbKvStore.BROADCAST_SUPPORT) return t.end()
+
+  var name = '' + (Math.round(9e16 * Math.random()))
+  var storeA = IdbKvStore(name)
+  var storeB = IdbKvStore(name)
+
+  storeB.on('add', onAdd)
+  storeA.add('foo', 'bar')
+
+  function onAdd (change) {
+    t.deepEqual({
+      method: 'add',
+      key: 'foo',
+      value: 'bar'
+    }, change)
+    t.end()
+  }
+})
+
 function createStore (cb) {
   var name = '' + (Math.round(9e16 * Math.random()))
   return new IdbKvStore(name, cb)

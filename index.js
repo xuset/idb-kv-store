@@ -20,12 +20,16 @@ function IdbKvStore (name, opts, cb) {
 
   EventEmitter.call(self)
 
-  self._name = name
   self._db = null
   self._closed = false
   self._queue = []
-  self._Channel = opts.channel || global.BroadcastChannel
   self._channel = null
+
+  var Channel = opts.channel || global.BroadcastChannel
+  if (Channel) {
+    self._channel = new Channel(name)
+    self._channel.onmessage = onChange
+  }
 
   var request = IDB.open(name)
   request.onerror = onerror
@@ -63,10 +67,7 @@ function IdbKvStore (name, opts, cb) {
 
   function onNewListener (event) {
     if (event !== 'add' && event !== 'set' && event !== 'remove') return
-    if (!self._Channel) return self.emit('error', new Error('No BroadcastChannel support'))
-    self._channel = new self._Channel(self._name)
-    self._channel.onmessage = onChange
-    self.removeListener('newListener', onNewListener)
+    if (!self._channel) return self.emit('error', new Error('No BroadcastChannel support'))
   }
 
   function onChange (event) {
