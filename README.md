@@ -117,7 +117,7 @@ Emitted when another instance adds an item to the database by calling `store.add
 * `change.key` - the key that value was added to
 * `change.value` - the new value
 
-See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
+See [Supported Browsers](#supported-browsers) for more info on which browsers support this event.
 
 ### `store.on('set', function (change) {})`
 
@@ -127,7 +127,7 @@ Emitted when another instance sets the value of a key in the database by calling
 * `change.key` - the key that value was set to
 * `change.value` - the new value
 
-See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
+See [Supported Browsers](#supported-browsers) for more info on which browsers support this event.
 
 ### `store.on('remove', function (change) {})`
 
@@ -136,7 +136,7 @@ Emitted when another instance removes an item from the database by calling `stor
 * `change.method` - always set to 'remove'
 * `change.key` - the key of the value that was removed
 
-See [Supported Browsers](#Supported Browsers) for more info on which browsers support this event.
+See [Supported Browsers](#supported-browsers) for more info on which browsers support this event.
 
 ### `store.on('close', function () {})`
 
