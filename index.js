@@ -15,15 +15,15 @@ function IdbKvStore (name, opts, cb) {
   if (typeof name !== 'string') throw new Error('A name must be supplied of type string')
   if (!IDB) throw new Error('IndexedDB not supported')
   if (typeof opts === 'function') return new IdbKvStore(name, null, opts)
-  if (!(this instanceof IdbKvStore)) return new IdbKvStore(name, opts, cb)
+  if (!(self instanceof IdbKvStore)) return new IdbKvStore(name, opts, cb)
   if (!opts) opts = {}
 
   EventEmitter.call(self)
 
   self._db = null
   self._closed = false
-  self._queue = []
   self._channel = null
+  self._waiters = []
 
   var Channel = opts.channel || global.BroadcastChannel
   if (Channel) {
@@ -39,8 +39,14 @@ function IdbKvStore (name, opts, cb) {
   self.on('newListener', onNewListener)
 
   function onerror (event) {
-    self.close()
-    self._handleError(event, cb)
+    event.stopPropagation()
+    self._close(event.target.error)
+    if (cb) cb(event.target.error)
+  }
+
+  function onDbError (event) {
+    event.stopPropagation()
+    self._close(event.target.error)
   }
 
   function onsuccess (event) {
@@ -49,20 +55,21 @@ function IdbKvStore (name, opts, cb) {
     } else {
       self._db = event.target.result
       self._db.onclose = onclose
-      self._drainQueue()
+      self._db.onerror = onDbError
+      for (var i in self._waiters) self._waiters[i]._init(null)
+      self._waiters = null
       if (cb) cb(null)
       self.emit('open')
     }
   }
 
   function onupgradeneeded (event) {
-    if (self._closed) return
     var db = event.target.result
     db.createObjectStore('kv', {autoIncrement: true})
   }
 
   function onclose () {
-    self.close()
+    self._close()
   }
 
   function onNewListener (event) {
@@ -78,273 +85,58 @@ function IdbKvStore (name, opts, cb) {
 }
 
 IdbKvStore.prototype.get = function (key, cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.get, key, defer.cb])
-  } else if (Array.isArray(key)) {
-    var result = []
-    var erroredOut = false
-    var successes = 0
-    key.forEach(function (_, index) {
-      self.get(key[index], function (err, val) {
-        if (erroredOut) return
-        if (err) {
-          erroredOut = true
-          defer.cb(err)
-        }
-        result[index] = val
-        successes++
-        if (successes === key.length) defer.cb(null, result)
-      })
-    })
-  } else {
-    var transaction = self._db.transaction('kv', 'readonly')
-    var request = transaction.objectStore('kv').get(key)
-
-    request.onsuccess = function (event) {
-      defer.cb(null, event.target.result)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readonly').get(key, cb)
 }
 
 IdbKvStore.prototype.set = function (key, value, cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.set, key, value, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readwrite')
-    var request = transaction.objectStore('kv').put(value, key)
-
-    request.onsuccess = function () {
-      if (self._channel) {
-        self._channel.postMessage({
-          method: 'set',
-          key: key,
-          value: value
-        })
-      }
-      defer.cb(null)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readwrite').set(key, value, cb)
 }
 
 IdbKvStore.prototype.json = function (cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.json, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readonly')
-    var request = transaction.objectStore('kv').openCursor()
-
-    var json = {}
-    request.onsuccess = function (event) {
-      var cursor = event.target.result
-      if (cursor) {
-        json[cursor.key] = cursor.value
-        cursor.continue()
-      } else {
-        defer.cb(null, json)
-      }
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readonly').json(cb)
 }
 
 IdbKvStore.prototype.keys = function (cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.keys, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readonly')
-    var request = transaction.objectStore('kv').openCursor()
-
-    var keys = []
-    request.onsuccess = function (event) {
-      var cursor = event.target.result
-      if (cursor) {
-        keys.push(cursor.key)
-        cursor.continue()
-      } else {
-        defer.cb(null, keys)
-      }
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readonly').keys(cb)
 }
 
 IdbKvStore.prototype.values = function (cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.values, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readonly')
-    var request = transaction.objectStore('kv').openCursor()
-
-    var values = []
-    request.onsuccess = function (event) {
-      var cursor = event.target.result
-      if (cursor) {
-        values.push(cursor.value)
-        cursor.continue()
-      } else {
-        defer.cb(null, values)
-      }
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readonly').values(cb)
 }
 
 IdbKvStore.prototype.remove = function (key, cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.remove, key, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readwrite')
-    var request = transaction.objectStore('kv').delete(key)
-
-    request.onsuccess = function (event) {
-      if (self._channel) {
-        self._channel.postMessage({
-          method: 'remove',
-          key: key
-        })
-      }
-      defer.cb(null)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readwrite').remove(key, cb)
 }
 
 IdbKvStore.prototype.clear = function (cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.clear, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readwrite')
-    var request = transaction.objectStore('kv').clear()
-
-    request.onsuccess = function (event) {
-      defer.cb(null)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readwrite').clear(cb)
 }
 
 IdbKvStore.prototype.count = function (cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  var defer = promisify(cb)
-
-  if (!self._db) {
-    self._queue.push([self.count, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readonly')
-    var request = transaction.objectStore('kv').count()
-
-    request.onsuccess = function (event) {
-      defer.cb(null, event.target.result)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+  return this.transaction('readonly').count(cb)
 }
 
 IdbKvStore.prototype.add = function (key, value, cb) {
-  var self = this
-  if (self._closed) throw new Error('Database is closed')
-  if (typeof value === 'function' || arguments.length === 1) return self.add(undefined, key, value)
-  var defer = promisify(cb)
+  return this.transaction('readwrite').add(key, value, cb)
+}
 
-  if (!self._db) {
-    self._queue.push([self.add, key, value, defer.cb])
-  } else {
-    var transaction = self._db.transaction('kv', 'readwrite')
-    var request = key == null
-      ? transaction.objectStore('kv').add(value)
-      : transaction.objectStore('kv').add(value, key)
+IdbKvStore.prototype.iterator = function (next) {
+  return this.transaction('readonly').iterator(next)
+}
 
-    request.onsuccess = function (event) {
-      if (self._channel) {
-        self._channel.postMessage({
-          method: 'add',
-          key: key,
-          value: value
-        })
-      }
-      defer.cb(null)
-    }
-
-    transaction.onerror = function (event) {
-      self._handleError(event, defer.cb)
-    }
-  }
-
-  return defer.promise
+IdbKvStore.prototype.transaction = function (mode) {
+  if (this._closed) throw new Error('Database is closed')
+  var transaction = new Transaction(this, mode)
+  if (this._db) transaction._init(null)
+  else this._waiters.push(transaction)
+  return transaction
 }
 
 IdbKvStore.prototype.close = function () {
+  this._close()
+}
+
+IdbKvStore.prototype._close = function (err) {
   if (this._closed) return
   this._closed = true
 
@@ -353,47 +145,332 @@ IdbKvStore.prototype.close = function () {
 
   this._db = null
   this._channel = null
-  this._queue = null
+
+  if (err) this.emit('error', err)
 
   this.emit('close')
+
+  for (var i in this._waiters) this._waiters[i]._init(err || new Error('Database is closed'))
+  this._waiters = null
 
   this.removeAllListeners()
 }
 
-IdbKvStore.prototype._drainQueue = function () {
+function Transaction (kvStore, mode) {
+  this._kvStore = kvStore
+  this._mode = mode || 'readwrite'
+  this._objectStore = null
+  this._waiters = null
+
+  this.finished = false
+  this.onfinish = null
+}
+
+Transaction.prototype._init = function (err) {
   var self = this
-  for (var i = 0; i < self._queue.length; i++) {
-    var item = self._queue[i]
-    var args = item.splice(1)
-    item[0].apply(self, args)
+
+  if (self.finished) return
+  if (err) return self._close(err)
+
+  var transaction = self._kvStore._db.transaction('kv', self._mode)
+  transaction.oncomplete = oncomplete
+  transaction.onerror = onerror
+
+  self._objectStore = transaction.objectStore('kv')
+
+  for (var i in self._waiters) self._waiters[i](null, self._objectStore)
+  self._waiters = null
+
+  function oncomplete () {
+    self._close(null)
   }
-  self._queue = null
+
+  function onerror (event) {
+    event.stopPropagation()
+    self._close(event.target.error)
+  }
 }
 
-IdbKvStore.prototype._handleError = function (event, cb) {
-  var err = event.target.error
-  event.preventDefault()
-
-  if (cb) {
-    cb(err)
-  } else {
-    this.emit('error', err)
-  }
+Transaction.prototype._getObjectStore = function (cb) {
+  if (this.finished) throw new Error('Transaction is finished')
+  if (this._objectStore) return cb(null, this._objectStore)
+  this._waiters = this._waiters || []
+  this._waiters.push(cb)
 }
 
-function promisify (cb) {
-  var defer = {cb: cb}
+Transaction.prototype.set = promisify(function (key, value, cb) {
+  var self = this
+  if (key == null || value == null) throw new Error('A key and value must be given')
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
 
-  if (typeof Promise === 'function' && cb == null) {
-    defer.promise = new Promise(function (resolve, reject) {
-      defer.cb = function (err, result) {
-        if (err) return reject(err)
-        else return resolve(result)
+    try {
+      var request = objectStore.put(value, key)
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function () {
+      if (self._kvStore._channel) {
+        self._kvStore._channel.postMessage({
+          method: 'set',
+          key: key,
+          value: value
+        })
       }
-    })
+      cb(null)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.add = promisify(function (key, value, cb) {
+  var self = this
+  if (value == null && key != null) return self.add(undefined, key, cb)
+  if (typeof value === 'function' || value == null && cb == null) return self.add(undefined, key, value)
+  if (value == null) throw new Error('A value must be provided as an argument')
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    try {
+      var request = key == null ? objectStore.add(value) : objectStore.add(value, key)
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function () {
+      if (self._kvStore._channel) {
+        self._kvStore._channel.postMessage({
+          method: 'add',
+          key: key,
+          value: value
+        })
+      }
+      cb(null)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.get = promisify(function (key, cb) {
+  var self = this
+  if (key == null) throw new Error('A key must be given as an argument')
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    try {
+      var request = objectStore.get(key)
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function (event) {
+      cb(null, event.target.result)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.json = promisify(function (cb) {
+  var self = this
+  var json = {}
+  self.iterator(function (err, cursor) {
+    if (err) return cb(err)
+    if (cursor) {
+      json[cursor.key] = cursor.value
+      cursor.continue()
+    } else {
+      cb(null, json)
+    }
+  })
+})
+
+Transaction.prototype.keys = promisify(function (cb) {
+  var self = this
+  var keys = []
+  self.iterator(function (err, cursor) {
+    if (err) return cb(err)
+    if (cursor) {
+      keys.push(cursor.key)
+      cursor.continue()
+    } else {
+      cb(null, keys)
+    }
+  })
+})
+
+Transaction.prototype.values = promisify(function (cb) {
+  var self = this
+  var values = []
+  self.iterator(function (err, cursor) {
+    if (err) return cb(err)
+    if (cursor) {
+      values.push(cursor.value)
+      cursor.continue()
+    } else {
+      cb(null, values)
+    }
+  })
+})
+
+Transaction.prototype.remove = promisify(function (key, cb) {
+  var self = this
+  if (key == null) throw new Error('A key must be given as an argument')
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    try {
+      var request = objectStore.delete(key)
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function () {
+      if (self._kvStore._channel) {
+        self._kvStore._channel.postMessage({
+          method: 'remove',
+          key: key
+        })
+      }
+      cb(null)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.clear = promisify(function (cb) {
+  var self = this
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    try {
+      var request = objectStore.clear()
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function () {
+      cb(null)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.count = promisify(function (cb) {
+  var self = this
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    try {
+      var request = objectStore.count()
+    } catch (e) {
+      return cb(e)
+    }
+
+    request.onsuccess = function (event) {
+      cb(null, event.target.result)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      cb(event.target.error)
+    }
+  })
+})
+
+Transaction.prototype.iterator = function (next) {
+  var self = this
+  if (typeof next !== 'function') throw new Error('A function must be given')
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return next(err)
+
+    try {
+      var request = objectStore.openCursor()
+    } catch (e) {
+      return next(e)
+    }
+
+    request.onsuccess = function (event) {
+      var cursor = event.target.result
+      next(null, cursor)
+    }
+
+    request.onerror = function (event) {
+      event.stopPropagation()
+      next(event.target.error)
+    }
+  })
+}
+
+Transaction.prototype.abort = function () {
+  if (this.finished) throw new Error('Transaction is finished')
+  if (this._objectStore) this._objectStore.transaction.abort()
+  this._close(new Error('Transaction aborted'))
+}
+
+Transaction.prototype._close = function (err) {
+  if (this.finished) return
+  this.finished = true
+
+  this._kvStore = null
+  this._objectStore = null
+
+  for (var i in this._waiters) this._waiters[i](err || new Error('Transaction is finished'))
+  if (this.onfinish) this.onfinish(err)
+
+  this.onfinish = null
+  this._waiters = null
+}
+
+function promisify (func) {
+  return function () {
+    var args = Array.prototype.slice.call(arguments)
+    var promise
+    var pResolve
+    var pReject
+
+    var cbType = typeof args[args.length - 1]
+    if (cbType !== 'function') {
+      if (cbType === 'undefined') args[args.length - 1] = cb
+      else args[args.length] = cb
+      if (typeof Promise !== 'undefined') {
+        promise = new Promise(function (resolve, reject) {
+          pResolve = resolve
+          pReject = reject
+        })
+      }
+    }
+
+    func.apply(this, args)
+    return promise
+
+    function cb (err, result) {
+      if (promise) {
+        if (err) pReject(err)
+        else pResolve(result)
+      } else {
+        if (err) throw err
+      }
+    }
   }
-
-  if (!defer.cb) defer.cb = function noop () {}
-
-  return defer
 }

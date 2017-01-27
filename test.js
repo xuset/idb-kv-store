@@ -58,22 +58,6 @@ test('get empty', function (t) {
   })
 })
 
-test('get multiple', function (t) {
-  t.timeoutAfter(3000)
-  var store = createStore()
-  store.set('a', 1, function (err) {
-    t.equal(err, null)
-    store.set('b', 2, function (err) {
-      t.equal(err, null)
-      store.get(['a', 'b'], function (err, values) {
-        t.equal(err, null)
-        t.deepEqual(values, [1, 2])
-        t.end()
-      })
-    })
-  })
-})
-
 test('promises', function (t) {
   t.timeoutAfter(3000)
 
@@ -158,6 +142,13 @@ test('error cases', function (t) {
   t.timeoutAfter(3000)
   t.throws(function () { return new IdbKvStore() })
   t.throws(function () { return new IdbKvStore({}) })
+  var store = createStore()
+  t.throws(function () { store.get() })
+  t.throws(function () { store.set() })
+  t.throws(function () { store.set('key') })
+  t.throws(function () { store.remove() })
+  t.throws(function () { store.iterator() })
+  t.throws(function () { store.add() })
   t.end()
 })
 
@@ -219,6 +210,9 @@ test('count()', function (t) {
 test('add()', function (t) {
   t.timeoutAfter(3000)
   var store = createStore()
+
+  t.throws(function () { store.add() })
+
   store.add('abc', 'def', function (err) {
     t.equal(err, null)
     store.add('abc', 'def', function (err) {
@@ -228,12 +222,31 @@ test('add()', function (t) {
   })
 })
 
+test('single arg add()', function (t) {
+  t.timeoutAfter(3000)
+  var name = '' + (Math.round(9e16 * Math.random()))
+  var store = new IdbKvStore(name, function (err) {
+    t.equal(err, null)
+    store.add('foobar')
+    store.close()
+  })
+
+  store.on('close', function () {
+    store = new IdbKvStore(name)
+    store.json(function (err, json) {
+      t.equal(err, null)
+      t.deepEqual({1: 'foobar'}, json)
+      t.end()
+    })
+  })
+})
+
 test('close()', function (t) {
   t.timeoutAfter(3000)
   var store = createStore(function () {
     store.close()
-    t.throws(function () { store.get() })
-    t.throws(function () { store.set() })
+    t.throws(function () { store.get('foo') })
+    t.throws(function () { store.set('foo', 'foo') })
     t.end()
   })
 })
@@ -393,6 +406,206 @@ test('broadcast event event with no listener', function (t) {
     }, change)
     t.end()
   }
+})
+
+test('transaction', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  var transaction = store.transaction()
+
+  transaction.onfinish = onfinish
+
+  transaction.add('foo')
+  transaction.set(1, 'bar')
+  transaction.set(2, 'bar')
+  transaction.remove(2)
+  transaction.json(function (err, json) {
+    t.equal(err, null)
+    t.deepEqual({1: 'bar'}, json)
+  })
+
+  function onfinish (err) {
+    t.equal(err, null)
+    t.end()
+  }
+})
+
+test('transaction abort', function (t) {
+  t.timeoutAfter(3000)
+  t.plan(5)
+
+  var store = createStore()
+  var transaction = store.transaction()
+
+  transaction.onfinish = onfinish
+
+  transaction.add('foo', function (err) {
+    t.ok(err instanceof Error)
+  })
+
+  transaction.abort()
+
+  t.throws(function () { transaction.add('bar') })
+
+  function onfinish (err) {
+    t.ok(err instanceof Error)
+    store.json(function (err, json) {
+      t.equal(err, null)
+      t.deepEqual({}, json)
+    })
+  }
+})
+
+test('iterator()', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  var transaction = store.transaction()
+  var count = 0
+  transaction.onfinish = onfinish
+  transaction.add('foo')
+  transaction.add('bar')
+
+  function onfinish (err) {
+    t.equal(err, null)
+    store.iterator(iter)
+  }
+
+  function iter (err, cursor) {
+    t.equal(err, null)
+    count++
+    if (count === 1) {
+      t.notEqual(cursor, null)
+      t.equal(cursor.key, 1)
+      t.equal(cursor.value, 'foo')
+      cursor.continue()
+    } else if (count === 2) {
+      t.notEqual(cursor, null)
+      t.equal(cursor.key, 2)
+      t.equal(cursor.value, 'bar')
+      cursor.continue()
+    } else if (count === 3) {
+      t.equal(cursor, null)
+      t.end()
+    }
+  }
+})
+
+test('write on readonly fails', function (t) {
+  t.timeoutAfter(3000)
+  var store = createStore()
+  var transaction = store.transaction('readonly')
+  transaction.add('foobar', function (err) {
+    t.ok(err instanceof Error)
+    transaction.set('foo', 'bar', function (err) {
+      t.ok(err instanceof Error)
+      transaction.remove('foobar', function (err) {
+        t.ok(err instanceof Error)
+        transaction.clear(function (err) {
+          t.ok(err instanceof Error)
+          t.end()
+        })
+      })
+    })
+  })
+})
+
+test('transaction cleanup', function (t) {
+  t.timeoutAfter(3000)
+
+  var store = createStore()
+  var trans = store.transaction('readonly')
+  trans.onfinish = function (err) {
+    t.equal(err, null)
+    t.equal(trans.finished, true)
+    t.throws(function () { trans.get('foo') })
+    t.end()
+  }
+})
+
+test('close db closes transactions', function (t) {
+  t.timeoutAfter(3000)
+  t.plan(3)
+
+  var store = createStore()
+  var trans = store.transaction('readonly')
+  trans.get('foo', function (err, result) {
+    t.ok(err instanceof Error)
+    t.equal(result, undefined)
+  })
+  trans.onfinish = function (err) {
+    t.ok(err instanceof Error)
+  }
+  store.close()
+})
+
+test('set and get Array as key', function (t) {
+  t.timeoutAfter(3000)
+
+  var store = createStore()
+  store.set(['foo', 'bar'], 'value', function (err) {
+    t.equal(err, null)
+    store.get(['foo', 'bar'], function (err, result) {
+      t.equal(err, null)
+      t.equal(result, 'value')
+      t.end()
+    })
+  })
+})
+
+test('transaction before close completes', function (t) {
+  t.timeoutAfter(3000)
+  t.plan(4)
+
+  var name = '' + (Math.round(9e16 * Math.random()))
+  var store = new IdbKvStore(name, function (err) {
+    t.equal(err, null)
+    store.add('foobar', function (err) {
+      t.equal(err, null)
+    })
+    store.close()
+    store = new IdbKvStore(name)
+    store.json(function (err, json) {
+      t.equal(err, null)
+      t.deepEqual({1: 'foobar'}, json)
+    })
+  })
+})
+
+test('close then open is successful', function (t) {
+  t.timeoutAfter(3000)
+
+  var name = '' + (Math.round(9e16 * Math.random()))
+  var store = new IdbKvStore(name)
+  store.close()
+  store.close()
+  store = new IdbKvStore(name, function (err) {
+    t.equal(err, null)
+    t.end()
+  })
+})
+
+test('transaction ordering on open', function (t) {
+  t.timeoutAfter(3000)
+
+  var store = createStore(function (err) {
+    t.equal(err, null)
+    store.add('second')
+  })
+  store.once('open', function () {
+    store.add('third', function (err) {
+      t.equal(err, null)
+      store.json(function (err, json) {
+        t.equal(err, null)
+        t.deepEqual(json, {
+          1: 'first',
+          2: 'second',
+          3: 'third'
+        })
+        t.end()
+      })
+    })
+  })
+  store.add('first')
 })
 
 test.skip('benchmark', function (t) {

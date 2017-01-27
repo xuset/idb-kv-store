@@ -17,7 +17,9 @@ var store = new IdbKvStore('the name of store')
 
 // Store the value 'def' at key 'abc'
 store.set('abc', 'def', function (err) {
+  if (err) throw err
   store.get('abc', function (err, value) {
+    if (err) throw err
     console.log('key=abc  value=' + value)
   })
 })
@@ -34,12 +36,27 @@ store.get('abc').then(value => {
 Listen for database mutation events
 
 ```js
-store.on('add', change => {
+store.on('add', change => { // add, set, and remove events supported
   console.log('key=' + change.key, 'value=' + change.value)
 })
 
 // 'add' fails if the key already exists
 someOtherStore.add('foo', 'bar')
+```
+
+Group multiple operations in an atomic and durable transaction
+
+```js
+var transaction = store.transaction('readwrite')
+
+transaction.add('value1') // key will be auto-generated
+transaction.add('value2') // key will be auto-generated
+
+transaction.onfinish = function (err) {
+  if (err) throw err
+  console.log('Everything is persisted to disk!')
+}
+
 ```
 
 ## API
@@ -90,6 +107,33 @@ Retrieves the entire key-value store as a json object. When the json representat
 ### `store.count([cb])`
 
 Retrieves the number of entries in the store, and calls `cb(err, count)` upon retrieval. `err` is null if the count was successful, in which case `count` will hold the value. If `cb` is undefined, then a promise is returned.
+
+### `store.iterator(function (err, cursor) {})`
+
+Iterate over each item in the database. Example
+```js
+store.iterator(function (err, cursor) {
+  if (err) throw err
+  if (cursor) { // If we haven't reached the end
+    console.log('key=' + cursor.key, 'value=' + cursor.value)
+    cursor.continue() // This method will be called with the next item
+  }
+})
+```
+
+### `var transaction = store.transaction([mode])`
+
+Returns a Transaction that allows for multiple operations to be grouped together in a durable and atomic way. `mode` can take the strings `'readwrite'` or `'readonly'`, and defaults to `'readwrite'`. The methods of the Transaction object are identical to the ones in IdbKvStore, and include: `add`, `set`, `get`, `remove`, `clear`, `keys`, `values`, `json`, `count`, and `iterator`.
+
+Transactions automatically commit after the last callback of a request completes and no new requests are made.
+
+#### `transaction.onfinish = function (err) {}`
+
+Called when the transaction has either successfully completed or failed. If the transaction failed then `err` is non null.
+
+#### `transaction.abort()`
+
+Rolls back any changes made by the transaction. The transaction is considered finish now.
 
 ### `store.close()`
 
