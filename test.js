@@ -1,3 +1,5 @@
+/* eslint-env browser */
+
 var IdbKvStore = require('.')
 var test = require('tape')
 var runParallel = require('run-parallel-limit')
@@ -149,6 +151,7 @@ test('error cases', function (t) {
   t.throws(function () { store.remove() })
   t.throws(function () { store.iterator() })
   t.throws(function () { store.add() })
+  t.throws(function () { store.transaction('foo') })
   t.end()
 })
 
@@ -495,13 +498,13 @@ test('write on readonly fails', function (t) {
   var store = createStore()
   var transaction = store.transaction('readonly')
   transaction.add('foobar', function (err) {
-    t.ok(err instanceof Error)
+    t.ok(err instanceof DOMException)
     transaction.set('foo', 'bar', function (err) {
-      t.ok(err instanceof Error)
+      t.ok(err instanceof DOMException)
       transaction.remove('foobar', function (err) {
-        t.ok(err instanceof Error)
+        t.ok(err instanceof DOMException)
         transaction.clear(function (err) {
-          t.ok(err instanceof Error)
+          t.ok(err instanceof DOMException)
           t.end()
         })
       })
@@ -538,20 +541,6 @@ test('close db closes transactions', function (t) {
   store.close()
 })
 
-test('set and get Array as key', function (t) {
-  t.timeoutAfter(3000)
-
-  var store = createStore()
-  store.set(['foo', 'bar'], 'value', function (err) {
-    t.equal(err, null)
-    store.get(['foo', 'bar'], function (err, result) {
-      t.equal(err, null)
-      t.equal(result, 'value')
-      t.end()
-    })
-  })
-})
-
 test('transaction before close completes', function (t) {
   t.timeoutAfter(3000)
   t.plan(4)
@@ -586,6 +575,8 @@ test('close then open is successful', function (t) {
 
 test('transaction ordering on open', function (t) {
   t.timeoutAfter(3000)
+
+  // NOTE: Sometimes IE & Edge will fail this due to not following idb spec
 
   var store = createStore(function (err) {
     t.equal(err, null)

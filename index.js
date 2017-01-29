@@ -1,9 +1,11 @@
+/* eslint-env browser */
+
 module.exports = IdbKvStore
 
 var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
 
-var global = typeof window === 'undefined' ? self : window // eslint-disable-line
+var global = typeof window === 'undefined' ? self : window
 var IDB = global.indexedDB || global.mozIndexedDB || global.webkitIndexedDB || global.msIndexedDB
 
 IdbKvStore.INDEXEDDB_SUPPORT = IDB != null
@@ -164,6 +166,10 @@ function Transaction (kvStore, mode) {
 
   this.finished = false
   this.onfinish = null
+
+  if (this._mode !== 'readonly' && this._mode !== 'readwrite') {
+    throw new Error('mode must be either "readonly" or "readwrite"')
+  }
 }
 
 Transaction.prototype._init = function (err) {
