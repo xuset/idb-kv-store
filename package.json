@@ -1,6 +1,6 @@
 {
   "name": "idb-kv-store",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "Persistent key-value store for web browsers backed by IndexedDB",
   "main": "index.js",
   "repository": {
