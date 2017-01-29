@@ -41,13 +41,13 @@ function IdbKvStore (name, opts, cb) {
   self.on('newListener', onNewListener)
 
   function onerror (event) {
-    event.stopPropagation()
+    handleError(event)
     self._close(event.target.error)
     if (cb) cb(event.target.error)
   }
 
   function onDbError (event) {
-    event.stopPropagation()
+    handleError(event)
     self._close(event.target.error)
   }
 
@@ -192,7 +192,7 @@ Transaction.prototype._init = function (err) {
   }
 
   function onerror (event) {
-    event.stopPropagation()
+    handleError(event)
     self._close(event.target.error)
   }
 }
@@ -216,6 +216,7 @@ Transaction.prototype.set = promisify(function (key, value, cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function () {
       if (self._kvStore._channel) {
         self._kvStore._channel.postMessage({
@@ -225,11 +226,6 @@ Transaction.prototype.set = promisify(function (key, value, cb) {
         })
       }
       cb(null)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -248,6 +244,7 @@ Transaction.prototype.add = promisify(function (key, value, cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function () {
       if (self._kvStore._channel) {
         self._kvStore._channel.postMessage({
@@ -257,11 +254,6 @@ Transaction.prototype.add = promisify(function (key, value, cb) {
         })
       }
       cb(null)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -278,13 +270,9 @@ Transaction.prototype.get = promisify(function (key, cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function (event) {
       cb(null, event.target.result)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -343,6 +331,7 @@ Transaction.prototype.remove = promisify(function (key, cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function () {
       if (self._kvStore._channel) {
         self._kvStore._channel.postMessage({
@@ -351,11 +340,6 @@ Transaction.prototype.remove = promisify(function (key, cb) {
         })
       }
       cb(null)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -371,13 +355,9 @@ Transaction.prototype.clear = promisify(function (cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function () {
       cb(null)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -393,13 +373,9 @@ Transaction.prototype.count = promisify(function (cb) {
       return cb(e)
     }
 
+    request.onerror = handleError.bind(this, cb)
     request.onsuccess = function (event) {
       cb(null, event.target.result)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      cb(event.target.error)
     }
   })
 })
@@ -416,14 +392,10 @@ Transaction.prototype.iterator = function (next) {
       return next(e)
     }
 
+    request.onerror = handleError.bind(this, next)
     request.onsuccess = function (event) {
       var cursor = event.target.result
       next(null, cursor)
-    }
-
-    request.onerror = function (event) {
-      event.stopPropagation()
-      next(event.target.error)
     }
   })
 }
@@ -446,6 +418,13 @@ Transaction.prototype._close = function (err) {
 
   this.onfinish = null
   this._waiters = null
+}
+
+function handleError (cb, event) {
+  if (event == null) return handleError(null, cb)
+  event.preventDefault()
+  event.stopPropagation()
+  if (cb) cb(event.target.error)
 }
 
 function promisify (func) {
