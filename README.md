@@ -92,23 +92,29 @@ Removes the given key from the store and calls `cb(err)` upon completion. `err` 
 
 Removes all entries from the store, and calls `cb(err)` upon completion. `err` is null the clear was successful. If `cb` is undefined then a promise is returned.
 
-### `store.keys([cb])`
+### `store.keys([range], [cb])`
 
 Retrieves the list of keys stored. When the list is retrieved, `cb` is called with `cb(err, keys)`. If `cb` is undefined then a promise is returned.
 
-### `store.values([cb])`
+To only return a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
+
+### `store.values([range], [cb])`
 
 Retrieves the list of values stored. When the list is retrieved, `cb` is called with `cb(err, keys)`. If `cb` is undefined then a promise is returned.
 
-### `store.json([cb])`
+To only return a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
+
+### `store.json([range], [cb])`
 
 Retrieves the entire key-value store as a json object. When the json representation has been retrieved, `cb` is called with `cb(err, json)`. If `cb` is undefined, then a promise is returned.
+
+To only return a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
 
 ### `store.count([cb])`
 
 Retrieves the number of entries in the store, and calls `cb(err, count)` upon retrieval. `err` is null if the count was successful, in which case `count` will hold the value. If `cb` is undefined, then a promise is returned.
 
-### `store.iterator(function (err, cursor) {})`
+### `store.iterator([range], function (err, cursor) {})`
 
 Iterate over each item in the database. Example
 ```js
@@ -120,6 +126,8 @@ store.iterator(function (err, cursor) {
   }
 })
 ```
+
+To only iterate over a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
 
 ### `var transaction = store.transaction([mode])`
 

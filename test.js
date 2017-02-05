@@ -383,6 +383,7 @@ test('values()', function (t) {
       t.equal(err, null)
       store.values(function (err, values) {
         t.equal(err, null)
+        store.json(console.log)
         t.deepEqual(values, ['A', 'B'])
         t.end()
       })
@@ -571,6 +572,65 @@ test('close then open is successful', function (t) {
     t.equal(err, null)
     t.end()
   })
+})
+
+test('ranged iterator()', function (t) {
+  t.timeoutAfter(3000)
+
+  var store = createStore()
+  var transaction = store.transaction()
+
+  transaction.add(1)
+  transaction.add(2)
+  transaction.add(3)
+
+  transaction.onfinish = function (err) {
+    t.equal(err, null)
+    var count = 1
+    store.iterator(IDBKeyRange.upperBound(2), function (err, cursor) {
+      t.equal(err, null)
+      if (count < 3) {
+        t.notEqual(cursor, null)
+        t.equal(cursor.key, count)
+        t.equal(cursor.value, count)
+        cursor.continue()
+      } else if (count === 3) {
+        t.equal(cursor, null)
+        t.end()
+      } else {
+        t.fail()
+      }
+      count++
+    })
+  }
+})
+
+test('ranged keys(), values(), and json()', function (t) {
+  t.timeoutAfter(3000)
+
+  var store = createStore()
+  var transaction = store.transaction()
+
+  transaction.add(1)
+  transaction.add(2)
+  transaction.add(3)
+
+  transaction.onfinish = function (err) {
+    t.equal(err, null)
+    store.json(IDBKeyRange.only(2), function (err, json) {
+      t.equal(err, null)
+      t.deepEqual(json, {2: 2})
+      store.values(IDBKeyRange.lowerBound(2), function (err, values) {
+        t.equal(err, null)
+        t.deepEqual(values, [2, 3])
+        store.keys(IDBKeyRange.upperBound(2), function (err, keys) {
+          t.equal(err, null)
+          t.deepEqual(keys, [1, 2])
+          t.end()
+        })
+      })
+    })
+  }
 })
 
 test('transaction ordering on open', function (t) {

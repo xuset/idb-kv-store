@@ -94,16 +94,16 @@ IdbKvStore.prototype.set = function (key, value, cb) {
   return this.transaction('readwrite').set(key, value, cb)
 }
 
-IdbKvStore.prototype.json = function (cb) {
-  return this.transaction('readonly').json(cb)
+IdbKvStore.prototype.json = function (range, cb) {
+  return this.transaction('readonly').json(range, cb)
 }
 
-IdbKvStore.prototype.keys = function (cb) {
-  return this.transaction('readonly').keys(cb)
+IdbKvStore.prototype.keys = function (range, cb) {
+  return this.transaction('readonly').keys(range, cb)
 }
 
-IdbKvStore.prototype.values = function (cb) {
-  return this.transaction('readonly').values(cb)
+IdbKvStore.prototype.values = function (range, cb) {
+  return this.transaction('readonly').values(range, cb)
 }
 
 IdbKvStore.prototype.remove = function (key, cb) {
@@ -122,8 +122,8 @@ IdbKvStore.prototype.add = function (key, value, cb) {
   return this.transaction('readwrite').add(key, value, cb)
 }
 
-IdbKvStore.prototype.iterator = function (next) {
-  return this.transaction('readonly').iterator(next)
+IdbKvStore.prototype.iterator = function (range, next) {
+  return this.transaction('readonly').iterator(range, next)
 }
 
 IdbKvStore.prototype.transaction = function (mode) {
@@ -277,10 +277,11 @@ Transaction.prototype.get = promisify(function (key, cb) {
   })
 })
 
-Transaction.prototype.json = promisify(function (cb) {
+Transaction.prototype.json = promisify(function (range, cb) {
   var self = this
+  if (typeof range === 'function') return self.json(null, range)
   var json = {}
-  self.iterator(function (err, cursor) {
+  self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
     if (cursor) {
       json[cursor.key] = cursor.value
@@ -291,10 +292,11 @@ Transaction.prototype.json = promisify(function (cb) {
   })
 })
 
-Transaction.prototype.keys = promisify(function (cb) {
+Transaction.prototype.keys = promisify(function (range, cb) {
   var self = this
+  if (typeof range === 'function') return self.keys(null, range)
   var keys = []
-  self.iterator(function (err, cursor) {
+  self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
     if (cursor) {
       keys.push(cursor.key)
@@ -305,10 +307,11 @@ Transaction.prototype.keys = promisify(function (cb) {
   })
 })
 
-Transaction.prototype.values = promisify(function (cb) {
+Transaction.prototype.values = promisify(function (range, cb) {
   var self = this
+  if (typeof range === 'function') return self.values(null, range)
   var values = []
-  self.iterator(function (err, cursor) {
+  self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
     if (cursor) {
       values.push(cursor.value)
@@ -380,14 +383,15 @@ Transaction.prototype.count = promisify(function (cb) {
   })
 })
 
-Transaction.prototype.iterator = function (next) {
+Transaction.prototype.iterator = function (range, next) {
   var self = this
+  if (typeof range === 'function') return self.iterator(null, range)
   if (typeof next !== 'function') throw new Error('A function must be given')
   self._getObjectStore(function (err, objectStore) {
     if (err) return next(err)
 
     try {
-      var request = objectStore.openCursor()
+      var request = range == null ? objectStore.openCursor() : objectStore.openCursor(range)
     } catch (e) {
       return next(e)
     }
