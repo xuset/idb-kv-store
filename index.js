@@ -204,9 +204,11 @@ Transaction.prototype._getObjectStore = function (cb) {
   this._waiters.push(cb)
 }
 
-Transaction.prototype.set = promisify(function (key, value, cb) {
+Transaction.prototype.set = function (key, value, cb) {
   var self = this
   if (key == null || value == null) throw new Error('A key and value must be given')
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -228,13 +230,17 @@ Transaction.prototype.set = promisify(function (key, value, cb) {
       cb(null)
     }
   })
-})
 
-Transaction.prototype.add = promisify(function (key, value, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.add = function (key, value, cb) {
   var self = this
   if (value == null && key != null) return self.add(undefined, key, cb)
   if (typeof value === 'function' || value == null && cb == null) return self.add(undefined, key, value)
   if (value == null) throw new Error('A value must be provided as an argument')
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -256,11 +262,15 @@ Transaction.prototype.add = promisify(function (key, value, cb) {
       cb(null)
     }
   })
-})
 
-Transaction.prototype.get = promisify(function (key, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.get = function (key, cb) {
   var self = this
   if (key == null) throw new Error('A key must be given as an argument')
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -275,11 +285,15 @@ Transaction.prototype.get = promisify(function (key, cb) {
       cb(null, event.target.result)
     }
   })
-})
 
-Transaction.prototype.json = promisify(function (range, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.json = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.json(null, range)
+  cb = promisify(cb)
+
   var json = {}
   self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
@@ -290,11 +304,15 @@ Transaction.prototype.json = promisify(function (range, cb) {
       cb(null, json)
     }
   })
-})
 
-Transaction.prototype.keys = promisify(function (range, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.keys = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.keys(null, range)
+  cb = promisify(cb)
+
   var keys = []
   self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
@@ -305,11 +323,15 @@ Transaction.prototype.keys = promisify(function (range, cb) {
       cb(null, keys)
     }
   })
-})
 
-Transaction.prototype.values = promisify(function (range, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.values = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.values(null, range)
+  cb = promisify(cb)
+
   var values = []
   self.iterator(range, function (err, cursor) {
     if (err) return cb(err)
@@ -320,11 +342,15 @@ Transaction.prototype.values = promisify(function (range, cb) {
       cb(null, values)
     }
   })
-})
 
-Transaction.prototype.remove = promisify(function (key, cb) {
+  return cb.promise
+}
+
+Transaction.prototype.remove = function (key, cb) {
   var self = this
   if (key == null) throw new Error('A key must be given as an argument')
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -345,10 +371,14 @@ Transaction.prototype.remove = promisify(function (key, cb) {
       cb(null)
     }
   })
-})
 
-Transaction.prototype.clear = promisify(function (cb) {
+  return cb.promise
+}
+
+Transaction.prototype.clear = function (cb) {
   var self = this
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -363,10 +393,14 @@ Transaction.prototype.clear = promisify(function (cb) {
       cb(null)
     }
   })
-})
 
-Transaction.prototype.count = promisify(function (cb) {
+  return cb.promise
+}
+
+Transaction.prototype.count = function (cb) {
   var self = this
+  cb = promisify(cb)
+
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
@@ -381,7 +415,9 @@ Transaction.prototype.count = promisify(function (cb) {
       cb(null, event.target.result)
     }
   })
-})
+
+  return cb.promise
+}
 
 Transaction.prototype.iterator = function (range, next) {
   var self = this
@@ -431,35 +467,31 @@ function handleError (cb, event) {
   if (cb) cb(event.target.error)
 }
 
-function promisify (func) {
-  return function () {
-    var args = Array.prototype.slice.call(arguments)
-    var promise
-    var pResolve
-    var pReject
+function promisify (cb) {
+  var promise
+  var res
+  var rej
 
-    var cbType = typeof args[args.length - 1]
-    if (cbType !== 'function') {
-      if (cbType === 'undefined') args[args.length - 1] = cb
-      else args[args.length] = cb
-      if (typeof Promise !== 'undefined') {
-        promise = new Promise(function (resolve, reject) {
-          pResolve = resolve
-          pReject = reject
-        })
-      }
-    }
+  if (cb != null && typeof cb !== 'function') throw new Error('cb must be a function')
 
-    func.apply(this, args)
-    return promise
+  if (cb == null && typeof Promise !== 'undefined') {
+    promise = new Promise(function (resolve, reject) {
+      res = resolve
+      rej = reject
+    })
+  }
 
-    function cb (err, result) {
-      if (promise) {
-        if (err) pReject(err)
-        else pResolve(result)
-      } else {
-        if (err) throw err
-      }
+  function intercept (err, result) {
+    if (promise) {
+      if (err) rej(err)
+      else res(result)
+    } else {
+      if (cb) cb(err, result)
+      else if (err) throw err
     }
   }
+
+  intercept.promise = promise
+
+  return intercept
 }
