@@ -605,7 +605,7 @@ test('ranged iterator()', function (t) {
   }
 })
 
-test('ranged keys(), values(), and json()', function (t) {
+test('ranged keys(), values(), json(), and count()', function (t) {
   t.timeoutAfter(3000)
 
   var store = createStore()
@@ -626,7 +626,11 @@ test('ranged keys(), values(), and json()', function (t) {
         store.keys(IDBKeyRange.upperBound(2), function (err, keys) {
           t.equal(err, null)
           t.deepEqual(keys, [1, 2])
-          t.end()
+          store.count(IDBKeyRange.only(2), function (err, count) {
+            t.equal(err, null)
+            t.equal(count, 1)
+            t.end()
+          })
         })
       })
     })

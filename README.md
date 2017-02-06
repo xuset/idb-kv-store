@@ -110,9 +110,11 @@ Retrieves the entire key-value store as a json object. When the json representat
 
 To only return a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
 
-### `store.count([cb])`
+### `store.count([range], [cb])`
 
 Retrieves the number of entries in the store, and calls `cb(err, count)` upon retrieval. `err` is null if the count was successful, in which case `count` will hold the value. If `cb` is undefined, then a promise is returned.
+
+To only count the number of entries in a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
 
 ### `store.iterator([range], function (err, cursor) {})`
 

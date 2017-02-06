@@ -114,8 +114,8 @@ IdbKvStore.prototype.clear = function (cb) {
   return this.transaction('readwrite').clear(cb)
 }
 
-IdbKvStore.prototype.count = function (cb) {
-  return this.transaction('readonly').count(cb)
+IdbKvStore.prototype.count = function (range, cb) {
+  return this.transaction('readonly').count(range, cb)
 }
 
 IdbKvStore.prototype.add = function (key, value, cb) {
@@ -397,15 +397,16 @@ Transaction.prototype.clear = function (cb) {
   return cb.promise
 }
 
-Transaction.prototype.count = function (cb) {
+Transaction.prototype.count = function (range, cb) {
   var self = this
+  if (typeof range === 'function') return self.count(null, range)
   cb = promisify(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
 
     try {
-      var request = objectStore.count()
+      var request = range == null ? objectStore.count() : objectStore.count(range)
     } catch (e) {
       return cb(e)
     }
