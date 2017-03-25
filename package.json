@@ -43,6 +43,7 @@
     "watchify": "^3.8.0"
   },
   "dependencies": {
-    "inherits": "^2.0.3"
+    "inherits": "^2.0.3",
+    "promisize": "^1.1.1"
   }
 }

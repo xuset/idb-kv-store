@@ -4,6 +4,7 @@ module.exports = IdbKvStore
 
 var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
+var promisize = require('promisize')
 
 var global = typeof window === 'undefined' ? self : window
 var IDB = global.indexedDB || global.mozIndexedDB || global.webkitIndexedDB || global.msIndexedDB
@@ -207,7 +208,7 @@ Transaction.prototype._getObjectStore = function (cb) {
 Transaction.prototype.set = function (key, value, cb) {
   var self = this
   if (key == null || value == null) throw new Error('A key and value must be given')
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -239,7 +240,7 @@ Transaction.prototype.add = function (key, value, cb) {
   if (value == null && key != null) return self.add(undefined, key, cb)
   if (typeof value === 'function' || value == null && cb == null) return self.add(undefined, key, value)
   if (value == null) throw new Error('A value must be provided as an argument')
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -269,7 +270,7 @@ Transaction.prototype.add = function (key, value, cb) {
 Transaction.prototype.get = function (key, cb) {
   var self = this
   if (key == null) throw new Error('A key must be given as an argument')
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -292,7 +293,7 @@ Transaction.prototype.get = function (key, cb) {
 Transaction.prototype.json = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.json(null, range)
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   var json = {}
   self.iterator(range, function (err, cursor) {
@@ -311,7 +312,7 @@ Transaction.prototype.json = function (range, cb) {
 Transaction.prototype.keys = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.keys(null, range)
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   var keys = []
   self.iterator(range, function (err, cursor) {
@@ -330,7 +331,7 @@ Transaction.prototype.keys = function (range, cb) {
 Transaction.prototype.values = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.values(null, range)
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   var values = []
   self.iterator(range, function (err, cursor) {
@@ -349,7 +350,7 @@ Transaction.prototype.values = function (range, cb) {
 Transaction.prototype.remove = function (key, cb) {
   var self = this
   if (key == null) throw new Error('A key must be given as an argument')
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -377,7 +378,7 @@ Transaction.prototype.remove = function (key, cb) {
 
 Transaction.prototype.clear = function (cb) {
   var self = this
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -400,7 +401,7 @@ Transaction.prototype.clear = function (cb) {
 Transaction.prototype.count = function (range, cb) {
   var self = this
   if (typeof range === 'function') return self.count(null, range)
-  cb = promisify(cb)
+  cb = promisize(cb)
 
   self._getObjectStore(function (err, objectStore) {
     if (err) return cb(err)
@@ -466,33 +467,4 @@ function handleError (cb, event) {
   event.preventDefault()
   event.stopPropagation()
   if (cb) cb(event.target.error)
-}
-
-function promisify (cb) {
-  var promise
-  var res
-  var rej
-
-  if (cb != null && typeof cb !== 'function') throw new Error('cb must be a function')
-
-  if (cb == null && typeof Promise !== 'undefined') {
-    promise = new Promise(function (resolve, reject) {
-      res = resolve
-      rej = reject
-    })
-  }
-
-  function intercept (err, result) {
-    if (promise) {
-      if (err) rej(err)
-      else res(result)
-    } else {
-      if (cb) cb(err, result)
-      else if (err) throw err
-    }
-  }
-
-  intercept.promise = promise
-
-  return intercept
 }
