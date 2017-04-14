@@ -12,7 +12,7 @@
   },
   "homepage": "https://github.com/xuset/indexeddb-chunk-store#readme",
   "scripts": {
-    "build": "browserify -r . -s IdbKvStore | uglifyjs -m > idbkvstore.min.js",
+    "bundle": "browserify -r . -s IdbKvStore | uglifyjs -m > idbkvstore.min.js",
     "standard": "standard",
     "karma": "karma start",
     "test": "standard && karma start"
@@ -29,21 +29,21 @@
   "author": "xuset",
   "license": "MIT",
   "devDependencies": {
-    "browserify": "^13.3.0",
-    "karma": "^1.4.0",
-    "karma-browserify": "^5.1.0",
+    "browserify": "^14.3.0",
+    "karma": "^1.6.0",
+    "karma-browserify": "^5.1.1",
     "karma-chrome-launcher": "^2.0.0",
-    "karma-firefox-launcher": "^1.0.0",
+    "karma-firefox-launcher": "^1.0.1",
     "karma-sauce-launcher": "^1.1.0",
     "karma-tap": "^3.1.1",
     "run-parallel-limit": "^1.0.3",
-    "standard": "^8.6.0",
+    "standard": "^10.0.2",
     "tape": "^4.6.3",
-    "uglify-js": "^2.7.4",
-    "watchify": "^3.8.0"
+    "uglify-js": "^2.8.22",
+    "watchify": "^3.9.0"
   },
   "dependencies": {
     "inherits": "^2.0.3",
-    "promisize": "^1.1.1"
+    "promisize": "^1.1.2"
   }
 }

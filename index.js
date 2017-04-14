@@ -238,7 +238,7 @@ Transaction.prototype.set = function (key, value, cb) {
 Transaction.prototype.add = function (key, value, cb) {
   var self = this
   if (value == null && key != null) return self.add(undefined, key, cb)
-  if (typeof value === 'function' || value == null && cb == null) return self.add(undefined, key, value)
+  if (typeof value === 'function' || (value == null && cb == null)) return self.add(undefined, key, value)
   if (value == null) throw new Error('A value must be provided as an argument')
   cb = promisize(cb)
 
