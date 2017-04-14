@@ -1,5 +1,7 @@
 # idb-kv-store [![Build Status](https://travis-ci.org/xuset/idb-kv-store.svg?branch=master)](https://travis-ci.org/xuset/idb-kv-store) [![npm](https://img.shields.io/npm/v/idb-kv-store.svg)](https://npmjs.org/package/idb-kv-store)
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/xuset/idb-kv-store.svg)](https://greenkeeper.io/)
+
 #### Simple key-value store backed by IndexedDB
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/xuset-idb-kv.svg)](https://saucelabs.com/u/xuset-idb-kv)
