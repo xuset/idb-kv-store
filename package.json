@@ -39,7 +39,7 @@
     "run-parallel-limit": "^1.0.3",
     "standard": "^10.0.2",
     "tape": "^4.6.3",
-    "uglify-js": "^2.8.22",
+    "uglify-js": "^3.0.0",
     "watchify": "^3.9.0"
   },
   "dependencies": {
