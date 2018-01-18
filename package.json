@@ -35,7 +35,7 @@
     "karma-chrome-launcher": "^2.0.0",
     "karma-firefox-launcher": "^1.0.1",
     "karma-sauce-launcher": "^1.1.0",
-    "karma-tap": "^3.1.1",
+    "karma-tap": "^4.0.0",
     "run-parallel-limit": "^1.0.3",
     "standard": "^10.0.2",
     "tape": "^4.6.3",
