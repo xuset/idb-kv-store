@@ -310,13 +310,18 @@ Transaction.prototype.getMultiple = function (keys, cb) {
     // Implementation mostly taken from https://www.codeproject.com/Articles/744986/How-to-do-some-magic-with-indexedDB
     var sortedKeys = keys.slice().sort()
     var i = 0
-    var results = new Array(keys.length)
+    var resultsMap = {};
+    var getReturnValue = function () {
+      return keys.map(function (key) {
+        return resultsMap[key]
+      })
+    }
     var cursorReq = objectStore.openCursor()
     cursorReq.onerror = handleError.bind(this, cb)
     cursorReq.onsuccess = function (event) {
       var cursor = event.target.result
       if (!cursor) {
-        cb(null, results)
+        cb(null, getReturnValue())
         return
       }
       var key = cursor.key
@@ -325,12 +330,12 @@ Transaction.prototype.getMultiple = function (keys, cb) {
         ++i
         if (i === sortedKeys.length) {
           // There is no next. Stop searching.
-          cb(null, results)
+          cb(null, getReturnValue())
           return
         }
       }
       if (key === sortedKeys[i]) {
-        results[keys.indexOf(key)] = cursor.value
+        resultsMap[key] = cursor.value
         // The current cursor value should be included and we should continue
         // a single step in case next item has the same key or possibly our
         // next key in sortedKeys.
