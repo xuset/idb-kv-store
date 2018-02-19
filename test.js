@@ -65,12 +65,13 @@ test('set/getAll objects', function (t) {
       store.set('c', c)
     ])
     .then(function () {
-      return store.getMultiple(['c', 'badkey', 'a'])
+      return store.getMultiple(['c', 'badkey', 'a', 'another-bad-key'])
     })
     .then(function (results) {
       t.deepEqual(results[0], c)
       t.deepEqual(results[1], undefined)
       t.deepEqual(results[2], a)
+      t.equal(results.length, 4)
       t.end()
     })
     .catch(function (err) {
