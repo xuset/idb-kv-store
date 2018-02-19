@@ -84,6 +84,11 @@ Additionally, the key is optional. If left empty then an integer key will be aut
 
 Retrieves the value at `key`. When the value is retrieved, `cb` is called with `cb(err, value)`. If the retrieval was successful then `err` will be null. If `cb` is undefined then a promise is returned instead. If the key does not exist then undefined is returned as the `value`; no error is raised.
 
+### `store.getMultiple(keys, [cb])`
+
+Works similar to `store.get` but for an array of keys. The result will be an array, containing a `value` for each key if it was found. If no value was found for a key, the array will contain `undefined` at that index; no error is raised.
+Passing the same key twice will result in the same reference being included twice in the result.
+
 ### `store.remove(key, [cb])`
 
 Removes the given key from the store and calls `cb(err)` upon completion. `err` is null if the removal was successful. If the key did not exist before the removal, the removal is still considered successful. If `cb` is undefined then a promise is returned.
