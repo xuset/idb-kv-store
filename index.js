@@ -308,7 +308,7 @@ Transaction.prototype.getMultiple = function (keys, cb) {
     if (err) return cb(err)
 
     // Implementation mostly taken from https://www.codeproject.com/Articles/744986/How-to-do-some-magic-with-indexedDB
-    var set = keys.slice().sort()
+    var sortedKeys = keys.slice().sort()
     var i = 0
     var results = []
     var cursorReq = objectStore.openCursor()
@@ -320,24 +320,24 @@ Transaction.prototype.getMultiple = function (keys, cb) {
         return
       }
       var key = cursor.key
-      while (key > set[i]) {
+      while (key > sortedKeys[i]) {
         // The cursor has passed beyond this key. Check next.
         ++i
-        if (i === set.length) {
+        if (i === sortedKeys.length) {
           // There is no next. Stop searching.
           cb(null, results)
           return
         }
       }
-      if (key === set[i]) {
+      if (key === sortedKeys[i]) {
         results[keys.indexOf(key)] = cursor.value
         // The current cursor value should be included and we should continue
         // a single step in case next item has the same key or possibly our
-        // next key in set.
+        // next key in sortedKeys.
         cursor.continue()
       } else {
-        // cursor.key not yet at set[i]. Forward cursor to the next key to hunt for.
-        cursor.continue(set[i])
+        // cursor.key not yet at sortedKeys[i]. Forward cursor to the next key to hunt for.
+        cursor.continue(sortedKeys[i])
       }
     }
   })
