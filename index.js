@@ -91,6 +91,10 @@ IdbKvStore.prototype.get = function (key, cb) {
   return this.transaction('readonly').get(key, cb)
 }
 
+IdbKvStore.prototype.getMultiple = function (keys, cb) {
+  return this.transaction('readonly').getMultiple(keys, cb)
+}
+
 IdbKvStore.prototype.set = function (key, value, cb) {
   return this.transaction('readwrite').set(key, value, cb)
 }
@@ -284,6 +288,57 @@ Transaction.prototype.get = function (key, cb) {
     request.onerror = handleError.bind(this, cb)
     request.onsuccess = function (event) {
       cb(null, event.target.result)
+    }
+  })
+
+  return cb.promise
+}
+
+Transaction.prototype.getMultiple = function (keys, cb) {
+  var self = this
+  if (keys == null) throw new Error('An array of keys must be given as an argument')
+  cb = promisize(cb)
+
+  if (keys.length === 0) {
+    cb(null, [])
+    return cb.promise
+  }
+
+  self._getObjectStore(function (err, objectStore) {
+    if (err) return cb(err)
+
+    // Implementation mostly taken from https://www.codeproject.com/Articles/744986/How-to-do-some-magic-with-indexedDB
+    var set = keys.slice().sort()
+    var i = 0
+    var results = []
+    var cursorReq = objectStore.openCursor()
+    cursorReq.onerror = handleError.bind(this, cb)
+    cursorReq.onsuccess = function (event) {
+      var cursor = event.target.result
+      if (!cursor) {
+        cb(null, results)
+        return
+      }
+      var key = cursor.key
+      while (key > set[i]) {
+        // The cursor has passed beyond this key. Check next.
+        ++i
+        if (i === set.length) {
+          // There is no next. Stop searching.
+          cb(null, results)
+          return
+        }
+      }
+      if (key === set[i]) {
+        results[keys.indexOf(key)] = cursor.value
+        // The current cursor value should be included and we should continue
+        // a single step in case next item has the same key or possibly our
+        // next key in set.
+        cursor.continue()
+      } else {
+        // cursor.key not yet at set[i]. Forward cursor to the next key to hunt for.
+        cursor.continue(set[i])
+      }
     }
   })
 
