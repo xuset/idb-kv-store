@@ -310,7 +310,7 @@ Transaction.prototype.getMultiple = function (keys, cb) {
     // Implementation mostly taken from https://www.codeproject.com/Articles/744986/How-to-do-some-magic-with-indexedDB
     var sortedKeys = keys.slice().sort()
     var i = 0
-    var resultsMap = {};
+    var resultsMap = {}
     var getReturnValue = function () {
       return keys.map(function (key) {
         return resultsMap[key]
