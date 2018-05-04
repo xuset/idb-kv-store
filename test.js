@@ -72,38 +72,38 @@ test('promises', function (t) {
   var store = createStore()
 
   store.set('a', 1)
-  .then(function () {
-    return store.get('a')
-  })
-  .then(function (value) {
-    t.equal(value, 1)
-    return store.json()
-  })
-  .then(function (json) {
-    t.deepEqual(json, {a: 1})
-    return store.remove('a')
-  })
-  .then(function () {
-    return store.clear()
-  })
-  .then(function () {
-    return store.add('b', 2)
-  })
-  .then(function () {
-    return store.count()
-  })
-  .then(function (count) {
-    t.equal(count, 1)
-    return store.keys()
-  })
-  .then(function (keys) {
-    t.deepEqual(keys, ['b'])
-    t.end()
-  })
-  .catch(function (err) {
-    t.fail(err)
-    t.end()
-  })
+    .then(function () {
+      return store.get('a')
+    })
+    .then(function (value) {
+      t.equal(value, 1)
+      return store.json()
+    })
+    .then(function (json) {
+      t.deepEqual(json, {a: 1})
+      return store.remove('a')
+    })
+    .then(function () {
+      return store.clear()
+    })
+    .then(function () {
+      return store.add('b', 2)
+    })
+    .then(function () {
+      return store.count()
+    })
+    .then(function (count) {
+      t.equal(count, 1)
+      return store.keys()
+    })
+    .then(function (keys) {
+      t.deepEqual(keys, ['b'])
+      t.end()
+    })
+    .catch(function (err) {
+      t.fail(err)
+      t.end()
+    })
 })
 
 test('json()', function (t) {
