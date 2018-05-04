@@ -64,10 +64,15 @@ module.exports = function (config) {
       testName: 'idb-kv-store'
     },
     customLaunchers: {
-      SL_Chrome: {
+      SL_Chrome_Latest: {
         base: 'SauceLabs',
         browserName: 'chrome',
         version: 'latest'
+      },
+      SL_Chrome: {
+        base: 'SauceLabs',
+        browserName: 'chrome',
+        version: '65.0'
       },
       SL_Firefox: {
         base: 'SauceLabs',
