@@ -4,6 +4,12 @@ var IdbKvStore = require('.')
 var test = require('tape')
 var runParallel = require('run-parallel-limit')
 
+if (navigator.storage && navigator.storage.estimate) {
+  navigator.storage.estimate().then(function (se) {
+    console.log('Storage Estimate:', 'usage=' + se.usage, 'quota=' + se.quota)
+  })
+}
+
 test('create/get/set pre-ready', function (t) {
   t.timeoutAfter(3000)
   var store = createStore()

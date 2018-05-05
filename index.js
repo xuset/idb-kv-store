@@ -186,6 +186,7 @@ Transaction.prototype._init = function (err) {
   var transaction = self._kvStore._db.transaction('kv', self._mode)
   transaction.oncomplete = oncomplete
   transaction.onerror = onerror
+  transaction.onabort = onerror
 
   self._objectStore = transaction.objectStore('kv')
 
