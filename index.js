@@ -96,7 +96,17 @@ IdbKvStore.prototype.getMultiple = function (keys, cb) {
 }
 
 IdbKvStore.prototype.set = function (key, value, cb) {
-  return this.transaction('readwrite').set(key, value, cb)
+  cb = promisize(cb)
+  var error = null
+  var t = this.transaction('readwrite')
+  t.onfinish = function (err) {
+    error = error || err
+    cb(error)
+  }
+  t.set(key, value, function (err) {
+    error = err
+  })
+  return cb.promise
 }
 
 IdbKvStore.prototype.json = function (range, cb) {
@@ -112,11 +122,31 @@ IdbKvStore.prototype.values = function (range, cb) {
 }
 
 IdbKvStore.prototype.remove = function (key, cb) {
-  return this.transaction('readwrite').remove(key, cb)
+  cb = promisize(cb)
+  var error = null
+  var t = this.transaction('readwrite')
+  t.onfinish = function (err) {
+    error = error || err
+    cb(error)
+  }
+  t.remove(key, function (err) {
+    error = err
+  })
+  return cb.promise
 }
 
 IdbKvStore.prototype.clear = function (cb) {
-  return this.transaction('readwrite').clear(cb)
+  cb = promisize(cb)
+  var error = null
+  var t = this.transaction('readwrite')
+  t.onfinish = function (err) {
+    error = error || err
+    cb(error)
+  }
+  t.clear(function (err) {
+    error = err
+  })
+  return cb.promise
 }
 
 IdbKvStore.prototype.count = function (range, cb) {
@@ -124,7 +154,17 @@ IdbKvStore.prototype.count = function (range, cb) {
 }
 
 IdbKvStore.prototype.add = function (key, value, cb) {
-  return this.transaction('readwrite').add(key, value, cb)
+  cb = promisize(cb)
+  var error = null
+  var t = this.transaction('readwrite')
+  t.onfinish = function (err) {
+    error = error || err
+    cb(error)
+  }
+  t.add(key, value, function (err) {
+    error = err
+  })
+  return cb.promise
 }
 
 IdbKvStore.prototype.iterator = function (range, next) {
