@@ -98,11 +98,10 @@ IdbKvStore.prototype.getMultiple = function (keys, cb) {
 IdbKvStore.prototype.set = function (key, value, cb) {
   cb = promisize(cb)
   var error = null
-  var t = this.transaction('readwrite')
-  t.onfinish = function (err) {
+  var t = this.transaction('readwrite', function (err) {
     error = error || err
     cb(error)
-  }
+  })
   t.set(key, value, function (err) {
     error = err
   })
@@ -124,11 +123,10 @@ IdbKvStore.prototype.values = function (range, cb) {
 IdbKvStore.prototype.remove = function (key, cb) {
   cb = promisize(cb)
   var error = null
-  var t = this.transaction('readwrite')
-  t.onfinish = function (err) {
+  var t = this.transaction('readwrite', function (err) {
     error = error || err
     cb(error)
-  }
+  })
   t.remove(key, function (err) {
     error = err
   })
@@ -138,11 +136,10 @@ IdbKvStore.prototype.remove = function (key, cb) {
 IdbKvStore.prototype.clear = function (cb) {
   cb = promisize(cb)
   var error = null
-  var t = this.transaction('readwrite')
-  t.onfinish = function (err) {
+  var t = this.transaction('readwrite', function (err) {
     error = error || err
     cb(error)
-  }
+  })
   t.clear(function (err) {
     error = err
   })
@@ -156,11 +153,10 @@ IdbKvStore.prototype.count = function (range, cb) {
 IdbKvStore.prototype.add = function (key, value, cb) {
   cb = promisize(cb)
   var error = null
-  var t = this.transaction('readwrite')
-  t.onfinish = function (err) {
+  var t = this.transaction('readwrite', function (err) {
     error = error || err
     cb(error)
-  }
+  })
   t.add(key, value, function (err) {
     error = err
   })
@@ -171,9 +167,10 @@ IdbKvStore.prototype.iterator = function (range, next) {
   return this.transaction('readonly').iterator(range, next)
 }
 
-IdbKvStore.prototype.transaction = function (mode) {
+IdbKvStore.prototype.transaction = function (mode, onfinish) {
   if (this._closed) throw new Error('Database is closed')
-  var transaction = new Transaction(this, mode)
+
+  var transaction = new Transaction(this, mode, onfinish)
   if (this._db) transaction._init(null)
   else this._waiters.push(transaction)
   return transaction
@@ -203,14 +200,17 @@ IdbKvStore.prototype._close = function (err) {
   this.removeAllListeners()
 }
 
-function Transaction (kvStore, mode) {
+function Transaction (kvStore, mode, cb) {
+  if (typeof mode === 'function') return new Transaction(kvStore, null, mode)
+
   this._kvStore = kvStore
   this._mode = mode || 'readwrite'
   this._objectStore = null
   this._waiters = null
 
   this.finished = false
-  this.onfinish = null
+  this.onfinish = promisize(cb) // `onfinish` public variable for backwards compatibility with v4.3.1
+  this.done = this.onfinish.promise
 
   if (this._mode !== 'readonly' && this._mode !== 'readwrite') {
     throw new Error('mode must be either "readonly" or "readwrite"')
@@ -557,10 +557,10 @@ Transaction.prototype._close = function (err) {
   this._objectStore = null
 
   for (var i in this._waiters) this._waiters[i](err || new Error('Transaction is finished'))
-  if (this.onfinish) this.onfinish(err)
-
-  this.onfinish = null
   this._waiters = null
+
+  if (this.onfinish) this.onfinish(err)
+  this.onfinish = null
 }
 
 function handleError (cb, event) {

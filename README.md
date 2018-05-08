@@ -52,11 +52,9 @@ var transaction = store.transaction('readwrite')
 transaction.add('value1') // key will be auto-generated
 transaction.add('value2') // key will be auto-generated
 
-transaction.onfinish = function (err) {
-  if (err) throw err
+transaction.done.then(() => {
   console.log('Everything is persisted to disk!')
-}
-
+})
 ```
 
 ## API
@@ -136,15 +134,14 @@ store.iterator(function (err, cursor) {
 
 To only iterate over a specific range, an [IDBKeyRange](https://developer.mozilla.org/en-US/docs/Web/API/IDBKeyRange) can be passed into `range`
 
-### `var transaction = store.transaction([mode])`
+### `var transaction = store.transaction([mode], [cb])`
 
 Returns a Transaction that allows for multiple operations to be grouped together in a durable and atomic way. `mode` can take the strings `'readwrite'` or `'readonly'`, and defaults to `'readwrite'`. The methods of the Transaction object are identical to the ones in IdbKvStore, and include: `add`, `set`, `get`, `remove`, `clear`, `keys`, `values`, `json`, `count`, and `iterator`.
 
-Transactions automatically commit after the last callback of a request completes and no new requests are made.
+Transactions automatically commit after the last callback of a request completes and no new requests are made. Once the transaction has finished, `cb(err)` is called. If `err` is `null` then the transaction has been committed successfully.
 
-#### `transaction.onfinish = function (err) {}`
-
-Called when the transaction has either successfully completed or failed. If the transaction failed then `err` is non null.
+#### `transaction.done` - Promise
+In browsers that have promise support `transaction.done` is a promise that resolves when the transaction commits successfully or rejects if the transaction fails to commit. This promise behaves the same way as the callback `cb` passed into `store.transaction(...)`, and because of this both the callback and promise variant cannot be used simultaneously. If a callback is passed to `store.transaction` then `transaction.done` is `undefined`. This is also the case if the browser does not have promise support.
 
 #### `transaction.abort()`
 

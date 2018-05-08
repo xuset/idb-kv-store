@@ -697,6 +697,69 @@ test('transaction ordering on open', function (t) {
   store.add('first')
 })
 
+test('transaction cb', function (t) {
+  t.timeoutAfter(3000)
+  t.plan(5)
+  var store = createStore()
+
+  var trans1 = store.transaction(onfinish1)
+  t.ok(trans1.done == null)
+  trans1.set('foo', 'bar')
+
+  function onfinish1 (err) {
+    t.equal(err, null)
+    var trans2 = store.transaction('readonly', onfinish2)
+    trans2.get('foo', function (err, val) {
+      t.equal(err, null)
+      t.equal(val, 'bar')
+    })
+  }
+
+  function onfinish2 (err) {
+    t.equal(err, null)
+  }
+})
+
+test('transaction promise', function (t) {
+  if (typeof Promise !== 'function') {
+    t.skip('Promises not supported')
+    t.end()
+    return
+  }
+
+  t.timeoutAfter(3000)
+  t.plan(4)
+  var store = createStore()
+
+  var trans1 = store.transaction()
+  trans1.done
+    .then(onfinish1)
+    .catch(function () {
+      t.fail()
+    })
+
+  trans1.set('foo', 'bar', function (err) {
+    t.equal(err, null)
+  })
+
+  function onfinish1 () {
+    var trans2 = store.transaction('readonly')
+
+    trans2.done
+      .then(onfinish2)
+      .catch(function () { t.fail() })
+
+    trans2.get('foo', function (err, val) {
+      t.equal(err, null)
+      t.equal(val, 'bar')
+    })
+  }
+
+  function onfinish2 () {
+    t.pass('transaction onfinish called')
+  }
+})
+
 test.skip('benchmark', function (t) {
   var buffSize = 4 * 1024
   var storeCount = 10000
