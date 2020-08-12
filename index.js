@@ -28,10 +28,12 @@ function IdbKvStore (name, opts, cb) {
   self._channel = null
   self._waiters = []
 
-  var Channel = opts.channel || global.BroadcastChannel
-  if (Channel) {
-    self._channel = new Channel(name)
-    self._channel.onmessage = onChange
+  if (opts.disableBroadcast !== true) {
+    var Channel = opts.channel || global.BroadcastChannel
+    if (Channel) {
+      self._channel = new Channel(name)
+      self._channel.onmessage = onChange
+    }
   }
 
   var request = IDB.open(name)

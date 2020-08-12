@@ -67,6 +67,7 @@ Instantiates a new key-value store. `name` is the name of the database used to p
 
 `opts` can have the following property:
  * opts.channel - If the browser does not natively support BroadcastChannel then a custom implementation can be passed in.
+ * opts.disableBroadcast - If set to true, will disable broadcasting changes to the channel. If you store large objects in the store, this can significantly improve performance.
 
 ### `store.set(key, value, [cb])`
 
