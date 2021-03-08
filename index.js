@@ -1,4 +1,5 @@
 /* eslint-env browser */
+/* global globalThis */
 
 module.exports = IdbKvStore
 
@@ -6,7 +7,7 @@ var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
 var promisize = require('promisize')
 
-var global = typeof window === 'undefined' ? self : window
+var global = typeof globalThis === 'undefined' ? (typeof window === 'undefined' ? self : window) : globalThis
 var IDB = global.indexedDB || global.mozIndexedDB || global.webkitIndexedDB || global.msIndexedDB
 
 IdbKvStore.INDEXEDDB_SUPPORT = IDB != null
